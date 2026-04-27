@@ -1,0 +1,120 @@
+<div class="admin-dashboard">
+  <div class="dashboard-content">
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+      @if (isLoading()) {
+        <div class="loading-message">
+          <p>Loading dashboard statistics...</p>
+        </div>
+      } @else {
+        @for (stat of stats(); track stat.label) {
+          <div class="stat-card" [class]="'stat-' + stat.color" (click)="onStatClick(stat)" [class.clickable]="stat.label === 'Total Users'">
+            <div class="stat-icon">{{ stat.icon }}</div>
+            <div class="stat-info">
+              <p class="stat-label">{{ stat.label }}</p>
+              <p class="stat-value">{{ stat.value }}</p>
+            </div>
+          </div>
+        }
+      }
+    </div>
+
+    <!-- User Role Breakdown -->
+    @if (showUserBreakdown()) {
+      <div class="user-breakdown-card">
+        <div class="card-header">
+          <h3>Users by Role</h3>
+          <button class="close-btn" (click)="showUserBreakdown.set(false)">×</button>
+        </div>
+        <div class="role-breakdown-grid">
+          @for (role of ['ADMIN', 'AGENT', 'CUSTOMER']; track role) {
+            <div class="role-item">
+              <div class="role-icon">
+                @if (role === 'ADMIN') {
+                  👑
+                } @else if (role === 'AGENT') {
+                  👨‍💼
+                } @else {
+                  👤
+                }
+              </div>
+              <div class="role-info">
+                <p class="role-name">{{ role }}</p>
+                <p class="role-count">{{ usersByRole()[role] || 0 }}</p>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Main Content Grid -->
+    <div class="content-grid">
+      <!-- Quick Actions -->
+      <div class="card quick-actions-card">
+        <div class="card-header">
+          <h2>Quick Actions</h2>
+        </div>
+        <div class="card-body">
+          <div class="actions-grid">
+            @for (action of quickActions; track action.label) {
+              <button class="action-btn" (click)="onQuickActionClick(action)">
+                <span class="action-icon">{{ action.icon }}</span>
+                <span class="action-label">{{ action.label }}</span>
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activities -->
+      <div class="card activities-card">
+        <div class="card-header">
+          <h2>Recent Activities</h2>
+          <a href="/claims" class="view-all">View All →</a>
+        </div>
+        <div class="card-body">
+          <!-- Pending Claims -->
+          <div class="activity-section">
+            <h4>Pending Claims for Review</h4>
+            <div class="activities-list">
+              @if (pendingClaims().length > 0) {
+                @for (claim of pendingClaims(); track claim.claimId) {
+                  <div class="activity-item activity-claim">
+                    <div class="activity-icon">⏳</div>
+                    <div class="activity-content">
+                      <p class="activity-action">Claim #{{ claim.claimId }} - {{ claim.description }}</p>
+                      <p class="activity-meta">{{ claim.claimAmount | currency:'INR' }} • {{ claim.dateFiled }}</p>
+                    </div>
+                  </div>
+                }
+              } @else {
+                <div class="no-activities">No pending claims</div>
+              }
+            </div>
+          </div>
+
+          <!-- Recent Payments -->
+          <div class="activity-section">
+            <h4>Recent Payments</h4>
+            <div class="activities-list">
+              @if (recentPayments().length > 0) {
+                @for (claim of recentPayments(); track claim.claimId) {
+                  <div class="activity-item activity-payment">
+                    <div class="activity-icon">💰</div>
+                    <div class="activity-content">
+                      <p class="activity-action">Payment for Claim #{{ claim.claimId }}</p>
+                      <p class="activity-meta">{{ claim.claimAmount | currency:'INR' }} • {{ claim.dateFiled }} • Status: {{ claim.claimStatus }}</p>
+                    </div>
+                  </div>
+                }
+              } @else {
+                <div class="no-activities">No recent payments</div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

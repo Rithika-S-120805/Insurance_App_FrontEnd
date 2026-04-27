@@ -1,0 +1,328 @@
+<nav class="navbar">
+  <button routerLink="/dashboard">Dashboard</button>
+  <button routerLink="/users">Users</button>
+  <button routerLink="/policies">Policies</button>
+  <button routerLink="/claims" class="active">Claims</button>
+  <button routerLink="/payments">Payments</button>
+</nav>
+
+<div class="claims-container">
+  <!-- Success Message Toast -->
+  @if (showSuccessMessage()) {
+    <div class="success-message">
+      <span class="message-text">{{ successMessage() }}</span>
+      <button class="close-message" (click)="showSuccessMessage.set(false)">✕</button>
+    </div>
+  }
+
+  <!-- Delete Confirmation Dialog -->
+  @if (showDeleteConfirm()) {
+    <div class="modal-overlay" (click)="cancelDelete()">
+      <div class="modal-content delete-confirm" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>Delete Claim</h2>
+          <button type="button" class="close-btn" (click)="cancelDelete()">✕</button>
+        </div>
+        <div class="modal-body delete-body">
+          <p>Are you sure you want to delete this claim? This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="cancelDelete()">Cancel</button>
+          <button type="button" class="btn btn-danger" (click)="confirmDelete()">Delete</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <div class="claims-header">
+    <h1>Claims Management</h1>
+    <div class="header-info">
+      <button class="btn btn-primary" (click)="openAddForm()">
+        <span>+</span> Add New Claim
+      </button>
+    </div>
+  </div>
+
+  <!-- Recent Activities -->
+  <div class="recent-activities">
+    <div class="activity-section">
+      <h3>Pending Claims for Review</h3>
+      <div class="activity-list">
+        @if (pendingClaims().length > 0) {
+          @for (claim of pendingClaims(); track claim.claimId) {
+            <div class="activity-item pending">
+              <div class="activity-icon">⏳</div>
+              <div class="activity-content">
+                <div class="activity-title">Claim #{{ claim.claimId }} - {{ claim.description }}</div>
+                <div class="activity-details">Amount: {{ claim.claimAmount | currency:'INR' }} | Filed: {{ claim.dateFiled }}</div>
+              </div>
+            </div>
+          }
+        } @else {
+          <div class="no-activities">No pending claims</div>
+        }
+      </div>
+    </div>
+
+    <div class="activity-section">
+      <h3>Recent Payments</h3>
+      <div class="activity-list">
+        @if (recentPayments().length > 0) {
+          @for (claim of recentPayments(); track claim.claimId) {
+            <div class="activity-item approved">
+              <div class="activity-icon">💰</div>
+              <div class="activity-content">
+                <div class="activity-title">Payment for Claim #{{ claim.claimId }}</div>
+                <div class="activity-details">Amount: {{ claim.claimAmount | currency:'INR' }} | Approved: {{ claim.dateFiled }}</div>
+              </div>
+            </div>
+          }
+        } @else {
+          <div class="no-activities">No recent payments</div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="search-box">
+      <input
+        #searchInput
+        type="text"
+        class="form-control"
+        placeholder="Search claims..."
+        [ngModel]="searchTerm()"
+        (input)="searchTerm.set(searchInput.value)"
+      />
+    </div>
+    <div class="status-filter">
+      <select
+        #statusSelect
+        class="form-control"
+        [ngModel]="selectedStatus()"
+        (change)="selectedStatus.set(statusSelect.value)"
+      >
+        <option value="all">All Statuses</option>
+        @for (stat of statuses; track stat) {
+          <option [value]="stat">{{ stat }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <!-- Claims Table -->
+  <div class="table-container">
+    @if (filteredClaims().length > 0) {
+      <table class="claims-table">
+        <thead>
+          <tr>
+            <th>Number</th>
+            <th>Policy ID</th>
+            <th>Amount</th>
+            <th>Filed Date</th>
+            <th>User ID</th>
+            <th>Status</th>
+            <th>Documents</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (claim of filteredClaims(); track claim.claimId) {
+            <tr [class.inactive]="claim.claimStatus !== 'Approved'">
+              <td class="claim-name">{{ claim.claimNumber || claim.claimId }}</td>
+              <td class="policy-id">{{ claim.policyId || claim.policy?.policyId }}</td>
+              <td>{{ claim.claimAmount | currency:'INR' }}</td>
+              <td>{{ claim.dateFiled }}</td>
+              <td class="user-id">{{ claim.user_id || 'N/A' }}</td>
+              <td>
+                <button
+                  class="status-badge"
+                  [ngClass]="{
+                    'status-pending': claim.claimStatus === 'Pending Review',
+                    'status-approved': claim.claimStatus === 'Approved',
+                    'status-denied': claim.claimStatus === 'Denied'
+                  }"
+                  (click)="toggleStatus(claim)"
+                >
+                  {{ claim.claimStatus | titlecase }}
+                </button>
+              </td>
+              <td class="documents-cell">
+                @if (claim.documents) {
+                  <a [href]="claim.documents" target="_blank" rel="noopener noreferrer">
+                    {{ claim.documents }}
+                  </a>
+                } @else {
+                  <span>-</span>
+                }
+              </td>
+              <td class="actions">
+                <button class="btn btn-sm btn-info" (click)="openEditForm(claim)" title="Edit">
+                  ✎
+                </button>
+                <button class="btn btn-sm btn-danger" (click)="deleteClaim(claim.claimId)" title="Delete">
+                  ✕
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <div class="no-data">
+        <p>No claims found matching your selection.</p>
+      </div>
+    }
+  </div>
+
+  <!-- Add/Edit Form Modal -->
+  @if (showForm()) {
+    <div class="modal-overlay" (click)="closeForm()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>{{ isEditMode() ? 'Edit Claim' : 'Add New Claim' }}</h2>
+          <button class="close-btn" (click)="closeForm()">✕</button>
+        </div>
+        <form [formGroup]="claimForm" (ngSubmit)="saveClaim()" class="modal-body">
+          <div class="form-group">
+            <label for="claimId">Claim ID</label>
+            <input
+              id="claimId"
+              type="number"
+              class="form-control"
+              formControlName="claimId"
+              [readOnly]="true"
+              [disabled]="true"
+            />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="policyId">Policy ID *</label>
+              @if (isEditMode()) {
+                <div class="form-control" style="background-color: #e9ecef; border: 1px solid #ced4da; border-radius: 0.25rem; padding: 0.375rem 0.75rem;">
+                  {{ policyId?.value }}
+                </div>
+              } @else {
+                <select
+                  id="policyId"
+                  class="form-control"
+                  [class.is-invalid]="policyId?.invalid && policyId?.touched"
+                  formControlName="policyId"
+                >
+                  <option [value]="''" [disabled]="true">Select a policy</option>
+                  @for (policy of policies(); track policy.policyId) {
+                    <option [value]="policy.policyId">
+                      {{ policy.policyNumber }} - {{ policy.policyType }} (₹{{ policy.premiumAmount }})
+                    </option>
+                  }
+                </select>
+                @if (policyId?.invalid && policyId?.touched) {
+                  <div class="invalid-feedback">Valid policy is required</div>
+                }
+              }
+            </div>
+            <div class="form-group">
+              <label for="claimAmount">Claim Amount *</label>
+              <input
+                id="claimAmount"
+                type="number"
+                class="form-control"
+                [class.is-invalid]="claimAmount?.invalid && claimAmount?.touched"
+                formControlName="claimAmount"
+              />
+              @if (claimAmount?.invalid && claimAmount?.touched) {
+                <div class="invalid-feedback">Valid claim amount is required</div>
+              }
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="dateFiled">Date Filed *</label>
+              <input 
+                id="dateFiled" 
+                type="date" 
+                class="form-control" 
+                [class.is-invalid]="dateFiled?.invalid && dateFiled?.touched"
+                formControlName="dateFiled" 
+              />
+              @if (dateFiled?.invalid && dateFiled?.touched) {
+                <div class="invalid-feedback">Date filed is required</div>
+              }
+            </div>
+            <div class="form-group">
+              <label for="claimStatus">Status *</label>
+              <select id="claimStatus" class="form-control" formControlName="claimStatus">
+                <option value="Pending Review">Pending Review</option>
+                <option value="Approved">Approved</option>
+                <option value="Denied">Denied</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="user_id">User ID</label>
+              <input 
+                id="user_id" 
+                type="number" 
+                class="form-control" 
+                [class.is-invalid]="user_id?.invalid && user_id?.touched"
+                formControlName="user_id"
+              />
+              @if (user_id?.invalid && user_id?.touched) {
+                <div class="invalid-feedback">
+                  @if (user_id?.errors?.['min']) {
+                    User ID must be greater than 0
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="description">Description *</label>
+            <textarea
+              id="description"
+              class="form-control"
+              [class.is-invalid]="description?.invalid && description?.touched"
+              formControlName="description"
+              placeholder="Enter claim description"
+              rows="3"
+            ></textarea>
+            @if (description?.invalid && description?.touched) {
+              <div class="invalid-feedback">
+                @if (description?.errors?.['required']) {
+                  Description is required
+                }
+                @if (description?.errors?.['minlength']) {
+                  Description must be at least 10 characters
+                }
+              </div>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="documents">Documents (Optional)</label>
+            <input
+              id="documents"
+              type="text"
+              class="form-control"
+              formControlName="documents"
+              placeholder="Enter document reference or file name"
+            />
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="closeForm()">Cancel</button>
+            <button type="submit" class="btn btn-primary" [disabled]="claimForm.invalid">
+              {{ isEditMode() ? 'Update' : 'Create' }} Claim
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</div>

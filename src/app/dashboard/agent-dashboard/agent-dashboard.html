@@ -1,0 +1,168 @@
+<div class="agent-dashboard">
+  <div class="dashboard-content">
+    <!-- Metrics Cards -->
+    <div class="metrics-grid">
+      @if (isLoading()) {
+        <div class="loading-message">
+          <p>Loading dashboard...</p>
+        </div>
+      } @else {
+        @for (metric of metrics(); track metric.label) {
+          <div class="metric-card" [class]="'metric-' + metric.color">
+            <span class="metric-icon">{{ metric.icon }}</span>
+            <div class="metric-info">
+              <p class="metric-label">{{ metric.label }}</p>
+              <p class="metric-value">{{ metric.value }}</p>
+            </div>
+          </div>
+        }
+      }
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="content-grid">
+      <!-- Quick Actions -->
+      <div class="card quick-actions-card">
+        <div class="card-header">
+          <h2>⚡ Quick Actions</h2>
+        </div>
+        <div class="card-body">
+          <div class="actions-grid">
+            @for (action of quickActions; track action.label) {
+              <button class="action-btn" (click)="onQuickActionClick(action)">
+                <span class="action-icon">{{ action.icon }}</span>
+                <span class="action-label">{{ action.label }}</span>
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Customer Interaction -->
+      <div class="card customer-interaction-card">
+        <div class="card-header">
+          <h2>👥 Customer Interaction</h2>
+        </div>
+        <div class="card-body">
+          <ul class="responsibility-list">
+            <li>📋 Explain insurance policies in detail</li>
+            <li>🎯 Suggest best plans based on customer needs</li>
+            <li>❓ Answer customer queries promptly</li>
+            <li>📞 Maintain regular contact with customers</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Policy Selling Section -->
+    <div class="card policy-selling-card">
+      <div class="card-header">
+        <h2>📋 Policy Selling & Management</h2>
+      </div>
+      <div class="card-body">
+        <div class="selling-features">
+          <div class="feature-item">
+            <h4>✅ Choose Policies</h4>
+            <p>Help customers select the right insurance plans for their needs</p>
+          </div>
+          <div class="feature-item">
+            <h4>📝 Fill Application Forms</h4>
+            <p>Assist in completing policy application documents</p>
+          </div>
+          <div class="feature-item">
+            <h4>📤 Submit Requests</h4>
+            <p>Submit policy requests to the admin for approval</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customer Management Section -->
+    <div class="card customers-management-card">
+      <div class="card-header">
+        <h2>👨‍💼 Customer Management</h2>
+        <a href="/users" class="view-all">View All →</a>
+      </div>
+      <div class="card-body">
+        <div class="customers-list">
+          @if (myCustomersForDisplay().length > 0) {
+            @for (customer of myCustomersForDisplay(); track customer.userId) {
+              <div class="customer-item">
+                <div class="customer-header">
+                  <span class="customer-name">{{ customer.fullName || customer.email }}</span>
+                  <span class="customer-role">Customer</span>
+                </div>
+                <div class="customer-details">
+                  <span>Email: {{ customer.email }}</span>
+                  <span>Policies: {{ customer.policies }}</span>
+                </div>
+              </div>
+            }
+          } @else {
+            <p class="no-data">No customers assigned yet</p>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Premium Follow-up Section -->
+    <div class="card renewals-card">
+      <div class="card-header">
+        <h2>💰 Premium Follow-up</h2>
+        <a href="/policies" class="view-all">View All →</a>
+      </div>
+      <div class="card-body">
+        @if (policiesNeedingRenewal().length > 0) {
+          <div class="renewals-list">
+            @for (policy of policiesNeedingRenewal(); track policy.policyId) {
+              <div class="renewal-item">
+                <div class="renewal-info">
+                  <h4>Policy #{{ policy.policyNumber }}</h4>
+                  <p>Type: {{ policy.policyType }}</p>
+                  <p class="action-needed">⚠️ Renewal/Payment Due</p>
+                </div>
+                <button class="btn btn-sm btn-primary">Send Reminder</button>
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="no-data">No renewals needed at this time</p>
+        }
+      </div>
+    </div>
+
+    <!-- Claim Assistance Section -->
+    <div class="card claims-assistance-card">
+      <div class="card-header">
+        <h2>📄 Claim Assistance</h2>
+        <a href="/claims" class="view-all">View All →</a>
+      </div>
+      <div class="card-body">
+        @if (claimsNeedingAssistance().length > 0) {
+          <div class="claims-list">
+            @for (claim of claimsNeedingAssistance(); track claim.claimId) {
+              <div class="claim-item">
+                <div class="claim-header">
+                  <h4>Claim #{{ claim.claimNumber || claim.claimId }}</h4>
+                  <span class="claim-status" [class]="'status-' + (claim.claimStatus || 'pending').toLowerCase()">
+                    {{ claim.claimStatus | titlecase }}
+                  </span>
+                </div>
+                <div class="claim-details">
+                  <p>Amount: {{ claim.claimAmount | currency:'INR' }}</p>
+                  <p>Filed: {{ claim.dateFiled }}</p>
+                </div>
+                <div class="claim-actions">
+                  <button class="btn btn-sm btn-link">📎 Submit Documents</button>
+                  <button class="btn btn-sm btn-link">📊 Track Status</button>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="no-data">No claims needing assistance</p>
+        }
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,45 @@
+<div class="dashboard-container">
+  <!-- Dashboard Header -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1>Dashboard</h1>
+        <div class="user-info">
+          <span class="greeting">Welcome, <strong>{{ getUserGreeting() }}</strong></span>
+          <span [class]="'badge ' + getRoleBadgeClass()">
+            {{ currentUser()?.role | uppercase }}
+          </span>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="btn btn-logout" (click)="logout()">
+          <span>↪</span> Logout
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Role-Based Dashboard Content -->
+  @if (currentUser()) {
+    @switch (currentUser()?.role) {
+      @case (UserRole.ADMIN) {
+        <app-admin-dashboard [user]="currentUser()!"></app-admin-dashboard>
+      }
+      @case (UserRole.AGENT) {
+        <app-agent-dashboard [user]="currentUser()!"></app-agent-dashboard>
+      }
+      @case (UserRole.CUSTOMER) {
+        <app-customer-dashboard [user]="currentUser()!"></app-customer-dashboard>
+      }
+      @default {
+        <div class="no-role">
+          <p>Unknown user role. Please contact administrator.</p>
+        </div>
+      }
+    }
+  } @else {
+    <div class="no-user">
+      <p>Please log in to access the dashboard.</p>
+    </div>
+  }
+</div>

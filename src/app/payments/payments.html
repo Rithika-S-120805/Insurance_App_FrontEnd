@@ -1,0 +1,200 @@
+<nav class="navbar">
+  <button routerLink="/dashboard">Dashboard</button>
+  <button routerLink="/users">Users</button>
+  <button routerLink="/policies">Policies</button>
+  <button routerLink="/claims">Claims</button>
+  <button routerLink="/payments" class="active">Payments</button>
+</nav>
+
+<div class="payments-container">
+  <!-- Success Message Toast -->
+  @if (showSuccessMessage()) {
+    <div class="success-message">
+      <span class="message-text">{{ successMessage() }}</span>
+      <button class="close-message" (click)="showSuccessMessage.set(false)">✕</button>
+    </div>
+  }
+
+  <!-- Delete Confirmation Dialog -->
+  @if (showDeleteConfirm()) {
+    <div class="modal-overlay" (click)="cancelDelete()">
+      <div class="modal-content delete-confirm" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>Delete Payment</h2>
+          <button type="button" class="close-btn" (click)="cancelDelete()">✕</button>
+        </div>
+        <div class="modal-body delete-body">
+          <p>Are you sure you want to delete this payment? This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="cancelDelete()">Cancel</button>
+          <button type="button" class="btn btn-danger" (click)="confirmDelete()">Delete</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Add/Edit Payment Form -->
+  @if (showForm()) {
+    <div class="modal-overlay" (click)="closeForm()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>{{ isEditMode() ? 'Edit Payment' : 'Add New Payment' }}</h2>
+          <button type="button" class="close-btn" (click)="closeForm()">✕</button>
+        </div>
+        <form [formGroup]="paymentForm" (ngSubmit)="savePayment()">
+          <div class="modal-body">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="claimId">Claim</label>
+                <select id="claimId" formControlName="claimId" class="form-control" [class.invalid]="paymentForm.get('claimId')?.invalid && paymentForm.get('claimId')?.touched">
+                  <option value="">Select a claim</option>
+                  @for (claim of claims(); track claim.claimId) {
+                    <option [value]="claim.claimId">{{ claim.claimId }} - {{ claim.description }}</option>
+                  }
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="amount">Amount</label>
+                <input type="number" id="amount" formControlName="amount" class="form-control" step="0.01" [class.invalid]="paymentForm.get('amount')?.invalid && paymentForm.get('amount')?.touched">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="paymentDate">Payment Date</label>
+                <input type="date" id="paymentDate" formControlName="paymentDate" class="form-control" [class.invalid]="paymentForm.get('paymentDate')?.invalid && paymentForm.get('paymentDate')?.touched">
+              </div>
+              <div class="form-group">
+                <label for="paymentMethod">Payment Method</label>
+                <select id="paymentMethod" formControlName="paymentMethod" class="form-control" [class.invalid]="paymentForm.get('paymentMethod')?.invalid && paymentForm.get('paymentMethod')?.touched">
+                  <option value="">Select method</option>
+                  @for (method of paymentMethods; track method) {
+                    <option [value]="method">{{ method }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="status">Status</label>
+                <select id="payment_status" formControlName="payment_status" class="form-control">
+                  @for (status of statuses; track status) {
+                    <option [value]="status">{{ status }}</option>
+                  }
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="transactionId">Transaction ID</label>
+                <input type="text" id="payment_reference" formControlName="payment_reference" class="form-control" placeholder="Enter payment reference">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="notes">Notes</label>
+              <textarea id="notes" formControlName="notes" class="form-control" rows="3"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="closeForm()">Cancel</button>
+            <button type="submit" class="btn btn-primary" [disabled]="paymentForm.invalid">
+              {{ isEditMode() ? 'Update Payment' : 'Create Payment' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <div class="payments-header">
+    <h1>Payments Management</h1>
+    <div class="header-info">
+      <button class="btn btn-primary" (click)="openAddForm()">
+        <span>+</span> Add New Payment
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="search-box">
+      <input
+        #searchInput
+        type="text"
+        class="form-control"
+        placeholder="Search payments..."
+        [ngModel]="searchTerm()"
+        (input)="searchTerm.set(searchInput.value)"
+      />
+    </div>
+    <div class="status-filter">
+      <select
+        #statusSelect
+        class="form-control"
+        [ngModel]="selectedStatus()"
+        (change)="selectedStatus.set(statusSelect.value)"
+      >
+        <option value="all">All Statuses</option>
+        @for (status of statuses; track status) {
+          <option [value]="status">{{ status }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <!-- Payments Table -->
+  <div class="table-container">
+    @if (filteredPayments().length > 0) {
+      <table class="payments-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Claim</th>
+            <th>Amount</th>
+            <th>Payment Date</th>
+            <th>Method</th>
+            <th>Payment Reference</th>
+            <th>Payment Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (payment of filteredPayments(); track payment.paymentId) {
+            <tr>
+              <td class="payment-id">{{ payment.paymentId }}</td>
+              <td>
+                <div class="claim-info">
+                  <div class="claim-number">{{ payment.claim?.claimNumber || payment.claimId }}</div>
+                  <div class="claim-description">{{ payment.claim?.description }}</div>
+                </div>
+              </td>
+              <td>{{ payment.amount | currency:'INR' }}</td>
+              <td>{{ payment.paymentDate }}</td>
+              <td>{{ payment.paymentMethod }}</td>
+              <td>{{ payment.payment_reference || payment.transactionId || 'N/A' }}</td>
+              <td>
+                <span class="status-badge" [ngClass]="{
+                  'status-completed': payment.payment_status === 'Completed' || payment.status === 'Completed',
+                  'status-pending': payment.payment_status === 'Pending' || payment.status === 'Pending',
+                  'status-failed': payment.payment_status === 'Failed' || payment.status === 'Failed'
+                }">
+                  {{ payment.payment_status || payment.status }}
+                </span>
+              </td>
+              <td class="actions">
+                <button class="btn btn-sm btn-info" (click)="openEditForm(payment)" title="Edit">
+                  ✎
+                </button>
+                <button class="btn btn-sm btn-danger" (click)="deletePayment(payment)" title="Delete">
+                  ✕
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <div class="no-payments">
+        <p>No payments found.</p>
+      </div>
+    }
+  </div>
+</div>

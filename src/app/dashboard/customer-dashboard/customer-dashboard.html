@@ -1,0 +1,115 @@
+<div class="customer-dashboard">
+  <div class="dashboard-content">
+    <!-- Quick Stats -->
+    <div class="stats-grid">
+      @for (stat of quickStats(); track stat.label) {
+        <div class="quick-stat">
+          <span class="stat-icon">{{ stat.icon }}</span>
+          <div class="stat-info">
+            <p class="stat-label">{{ stat.label }}</p>
+            <p class="stat-value">{{ stat.value }}</p>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Main Content -->
+    <div class="content-grid">
+      <!-- My Policies -->
+      <div class="card">
+        <div class="card-header">
+          <h2>My Policies</h2>
+          <a href="#" class="view-all">View All →</a>
+        </div>
+        <div class="card-body">
+          <div class="policies-list">
+            @if (policies().length > 0) {
+              @for (policy of policies(); track policy.policyId) {
+                <div class="policy-card">
+                  <div class="policy-header">
+                    <h3>{{ policy.policyType }}</h3>
+                    <span [class]="'badge badge-' + (policy.status === 'Active' ? 'active' : 'pending')">
+                      {{ policy.status }}
+                    </span>
+                  </div>
+                  <div class="policy-details">
+                    <p><strong>Policy Number:</strong> {{ policy.policyNumber }}</p>
+                    <p><strong>Premium:</strong> ${{ policy.premiumAmount }}/month</p>
+                    <p><strong>Expires:</strong> {{ policy.endDate }}</p>
+                  </div>
+                  <div class="policy-actions">
+                    <button class="btn btn-sm btn-primary">View Details</button>
+                    <button class="btn btn-sm btn-secondary">Download</button>
+                  </div>
+                </div>
+              }
+            } @else {
+              <p class="no-data">No policies found</p>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- My Claims -->
+      <div class="card">
+        <div class="card-header">
+          <h2>My Claims</h2>
+          <a href="#" class="view-all">View All →</a>
+        </div>
+        <div class="card-body">
+          <div class="claims-list">
+            @if (claims().length > 0) {
+              @for (claim of claims(); track claim.claimId) {
+                <div class="claim-card">
+                  <div class="claim-header">
+                    <h3>{{ claim.claimNumber || 'CLM-' + claim.claimId }}</h3>
+                    <span [class]="'badge badge-' + (claim.claimStatus === 'Approved' ? 'success' : claim.claimStatus === 'Under Review' ? 'warning' : 'pending')">
+                      {{ claim.claimStatus }}
+                    </span>
+                  </div>
+                  <div class="claim-details">
+                    <p><strong>Policy:</strong> {{ claim.policy?.policyNumber }}</p>
+                    <p><strong>Amount:</strong> ${{ claim.claimAmount }}</p>
+                    <p><strong>Filed:</strong> {{ claim.dateFiled }}</p>
+                  </div>
+                  <div class="claim-actions">
+                    <button class="btn btn-sm btn-primary">View Details</button>
+                  </div>
+                </div>
+              }
+            } @else {
+              <p class="no-data">No claims found</p>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Documents -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Recent Documents</h2>
+      </div>
+      <div class="card-body">
+        <div class="documents-list">
+          @if (recentDocuments().length > 0) {
+            @for (doc of recentDocuments(); track doc.name) {
+              <div class="document-item">
+                <span class="doc-icon">📄</span>
+                <div class="doc-info">
+                  <p class="doc-name">{{ doc.name }}</p>
+                  <p class="doc-meta">{{ doc.size }} • Uploaded {{ doc.uploaded }}</p>
+                </div>
+                <div class="doc-actions">
+                  <button class="btn btn-sm btn-link">Download</button>
+                </div>
+              </div>
+            }
+          } @else {
+            <p class="no-data">No documents available</p>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

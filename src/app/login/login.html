@@ -1,0 +1,147 @@
+<div class="d-flex align-items-center justify-content-center min-vh-100 bg-gradient">
+  <div class="card shadow-lg" style="width: 100%; max-width: 450px;">
+    <div class="card-body p-5">
+      <h1 class="card-title text-center mb-4">
+        @if (isRegisterMode()) {
+          Sign Up
+        } @else {
+          Login
+        }
+      </h1>
+
+      <div class="text-center mb-3">
+        @if (isRegisterMode()) {
+          <span>Already have an account?</span>
+          <button type="button" class="btn btn-link btn-sm p-0" (click)="toggleRegister()">Login</button>
+        } @else {
+          <span>New user?</span>
+          <button type="button" class="btn btn-link btn-sm p-0" (click)="toggleRegister()">Sign up</button>
+        }
+      </div>
+
+      @if (errorMessage()) {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          {{ errorMessage() }}
+          <button type="button" class="btn-close" (click)="errorMessage.set(null)"></button>
+        </div>
+      }
+
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+        <div class="mb-3">
+          <label for="email" class="form-label">Email</label>
+          <input
+            id="email"
+            type="email"
+            class="form-control"
+            [class.is-invalid]="email?.invalid && email?.touched"
+            formControlName="email"
+            placeholder="Enter your email"
+            [attr.aria-invalid]="email?.invalid && email?.touched"
+          />
+          @if (email?.invalid && email?.touched) {
+            <div class="invalid-feedback d-block">
+              @if (email?.errors?.['required']) {
+                Email is required
+              }
+              @if (email?.errors?.['email']) {
+                Please enter a valid email address
+              }
+            </div>
+          }
+        </div>
+
+        @if (isRegisterMode()) {
+          <div class="mb-3">
+            <label for="fullName" class="form-label">Full Name</label>
+            <input
+              id="fullName"
+              type="text"
+              class="form-control"
+              formControlName="fullName"
+              placeholder="Enter your full name"
+            />
+          </div>
+
+          <div class="mb-3">
+            <label for="username" class="form-label">Username</label>
+            <input
+              id="username"
+              type="text"
+              class="form-control"
+              formControlName="username"
+              placeholder="Choose a username"
+            />
+          </div>
+
+          <div class="mb-3">
+            <label for="role" class="form-label">Account Type</label>
+            <select id="role" class="form-select" formControlName="role">
+              @for (option of roles; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+          </div>
+        }
+
+        <div class="mb-3">
+          <label for="password" class="form-label">Password</label>
+          <input
+            id="password"
+            type="password"
+            class="form-control"
+            [class.is-invalid]="password?.invalid && password?.touched"
+            formControlName="password"
+            placeholder="Enter your password"
+            [attr.aria-invalid]="password?.invalid && password?.touched"
+          />
+          @if (password?.invalid && password?.touched) {
+            <div class="invalid-feedback d-block">
+              @if (password?.errors?.['required']) {
+                Password is required
+              }
+            </div>
+          }
+        </div>
+
+        <button
+          type="submit"
+          [disabled]="isLoading()"
+          class="btn btn-primary w-100 btn-lg"
+        >
+          @if (isLoading()) {
+            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            @if (isRegisterMode()) {
+              Creating account...
+            } @else {
+              Logging in...
+            }
+          } @else {
+            @if (isRegisterMode()) {
+              Create account
+            } @else {
+              Login
+            }
+          }
+        </button>
+
+        @if (!isRegisterMode()) {
+          <!-- Demo Login Shortcuts -->
+          <div class="demo-section mt-4">
+            <p class="text-center text-muted mb-3" style="font-size: 0.9rem;">Quick Demo Login</p>
+            <div class="d-grid gap-2">
+              <button type="button" (click)="loginAsAdmin()" class="btn btn-outline-danger btn-sm" [disabled]="isLoading()">
+                Login as Admin
+              </button>
+              <button type="button" (click)="loginAsAgent()" class="btn btn-outline-primary btn-sm" [disabled]="isLoading()">
+                Login as Agent
+              </button>
+              <button type="button" (click)="loginAsCustomer()" class="btn btn-outline-success btn-sm" [disabled]="isLoading()">
+                Login as Customer
+              </button>
+            </div>
+          </div>
+        }
+      </form>
+    </div>
+  </div>
+</div>
