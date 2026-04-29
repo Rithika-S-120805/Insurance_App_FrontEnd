@@ -38,6 +38,13 @@ export class ClaimsManagementComponent implements OnInit {
   claimForm!: FormGroup;
 
   currentUser = signal(this.userService.getCurrentUser());
+  canManageClaims = computed(() => true); // keep claims fully manageable
+
+  canAddPayments = computed(() => {
+    const role = this.currentUser()?.role;
+    return role !== UserRole.CUSTOMER;
+  });
+  isCustomer = computed(() => this.currentUser()?.role === UserRole.CUSTOMER);
 
   statuses = ['Pending Review', 'Approved', 'Denied'];
 
@@ -159,6 +166,9 @@ export class ClaimsManagementComponent implements OnInit {
   }
 
   openAddForm(): void {
+    if (!this.canManageClaims()) {
+      return;
+    }
     this.isEditMode.set(false);
     this.selectedClaim.set(null);
     this.claimForm.reset({ 
@@ -168,6 +178,9 @@ export class ClaimsManagementComponent implements OnInit {
   }
 
   openEditForm(claim: any): void {
+    if (!this.canManageClaims()) {
+      return;
+    }
     this.isEditMode.set(true);
     this.selectedClaim.set(claim);
     this.claimForm.patchValue({
@@ -190,6 +203,9 @@ export class ClaimsManagementComponent implements OnInit {
   }
 
   saveClaim(): void {
+    if (!this.canManageClaims()) {
+      return;
+    }
     if (this.claimForm.invalid) {
       this.claimForm.markAllAsTouched();
       return;
@@ -311,12 +327,18 @@ export class ClaimsManagementComponent implements OnInit {
   }
 
   deleteClaim(id: any): void {
+    if (!this.canManageClaims()) {
+      return;
+    }
     console.log('Delete button clicked with ID:', id, 'Type:', typeof id);
     this.claimToDelete.set(id);
     this.showDeleteConfirm.set(true);
   }
 
   confirmDelete(): void {
+    if (!this.canManageClaims()) {
+      return;
+    }
     const id = this.claimToDelete();
     console.log('Confirming delete with ID:', id, 'Type:', typeof id);
     
@@ -353,6 +375,9 @@ export class ClaimsManagementComponent implements OnInit {
   }
 
   toggleStatus(claim: any): void {
+    if (!this.canManageClaims()) {
+      return;
+    }
     if (!claim.claimId) return;
     
     // Cycle through statuses: Pending Review -> Approved -> Denied -> Pending Review

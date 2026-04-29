@@ -1,4 +1,16 @@
 <div class="admin-dashboard">
+  <!-- Loading Indicator -->
+  @if (isLoading()) {
+    <div class="loading-banner">
+      <p>📊 Loading admin dashboard data...</p>
+    </div>
+  }
+
+  <!-- Diagnostic Info (Development) -->
+  <div class="diagnostic-info" style="display: none;">
+    <p>Total Users: {{ totalUsers() }} | Total Policies: {{ totalPolicies() }} | Total Claims: {{ claims().length }} | Total Payments: {{ payments().length }}</p>
+  </div>
+
   <div class="dashboard-content">
     <!-- Statistics Cards -->
     <div class="stats-grid">
@@ -83,13 +95,19 @@
                   <div class="activity-item activity-claim">
                     <div class="activity-icon">⏳</div>
                     <div class="activity-content">
-                      <p class="activity-action">Claim #{{ claim.claimId }} - {{ claim.description }}</p>
-                      <p class="activity-meta">{{ claim.claimAmount | currency:'INR' }} • {{ claim.dateFiled }}</p>
+                      <p class="activity-action">Claim #{{ claim.claimId }} - {{ claim.description || 'No description' }}</p>
+                      <p class="activity-meta">{{ claim.claimAmount | currency:'INR' }} • {{ formatDate(claim.dateFiled || claim.claimDate) }} • Status: {{ getClaimStatusLabel(claim.claimStatus || claim.status) }}</p>
                     </div>
                   </div>
                 }
               } @else {
-                <div class="no-activities">No pending claims</div>
+                <div class="no-activities">
+                  @if (claims().length === 0) {
+                    <p>No claims data available. Claims may still be loading or database may be empty.</p>
+                  } @else {
+                    <p>No pending claims at this time. All claims are either approved or rejected.</p>
+                  }
+                </div>
               }
             </div>
           </div>
@@ -99,19 +117,217 @@
             <h4>Recent Payments</h4>
             <div class="activities-list">
               @if (recentPayments().length > 0) {
-                @for (claim of recentPayments(); track claim.claimId) {
+                @for (payment of recentPayments(); track payment.paymentId) {
                   <div class="activity-item activity-payment">
                     <div class="activity-icon">💰</div>
                     <div class="activity-content">
-                      <p class="activity-action">Payment for Claim #{{ claim.claimId }}</p>
-                      <p class="activity-meta">{{ claim.claimAmount | currency:'INR' }} • {{ claim.dateFiled }} • Status: {{ claim.claimStatus }}</p>
+                      <p class="activity-action">Payment #{{ payment.paymentId }} - {{ payment.paymentMethod || 'N/A' }}</p>
+                      <p class="activity-meta">{{ payment.amount | currency:'INR' }} • {{ formatDate(payment.paymentDate) }} • Status: {{ getClaimStatusLabel(payment.status) }}</p>
                     </div>
                   </div>
                 }
               } @else {
-                <div class="no-activities">No recent payments</div>
+                <div class="no-activities">
+                  @if (payments().length === 0) {
+                    <p>No payments data available. Payments may still be loading or database may be empty.</p>
+                  } @else {
+                    <p>No recent payments to display.</p>
+                  }
+                </div>
               }
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Policies Filter Section -->
+      <div class="card policies-card">
+        <div class="card-header">
+          <h2>🔍 Policies Search & Filter</h2>
+          <button class="clear-filters-btn" (click)="clearPoliciesFilters()" title="Clear all filters">✕ Clear</button>
+        </div>
+        <div class="card-body">
+          <!-- Filter Controls -->
+          <div class="filter-controls">
+            <div class="filter-group">
+              <label>Search (Policy #, Holder)</label>
+              <input 
+                type="text" 
+                [(ngModel)]="policiesSearchText" 
+                placeholder="Search by policy number or holder name..."
+                class="filter-input"
+              />
+            </div>
+
+            <div class="filter-group">
+              <label>Status</label>
+              <select [(ngModel)]="policiesStatusFilter" class="filter-select">
+                <option value="">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="expired">Expired</option>
+                <option value="pending">Pending</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label>Policy Type</label>
+              <select [(ngModel)]="policiesTypeFilter" class="filter-select">
+                <option value="">All Types</option>
+                @for (type of uniquePolicyTypes(); track type) {
+                  <option [value]="type">{{ type }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label>Min Premium (₹)</label>
+              <input 
+                type="number" 
+                [(ngModel)]="policiesMinAmount" 
+                placeholder="Min amount"
+                class="filter-input"
+              />
+            </div>
+
+            <div class="filter-group">
+              <label>Max Premium (₹)</label>
+              <input 
+                type="number" 
+                [(ngModel)]="policiesMaxAmount" 
+                placeholder="Max amount"
+                class="filter-input"
+              />
+            </div>
+          </div>
+
+          <!-- Filtered Results -->
+          <div class="filter-results">
+            <h4>Results ({{ filteredPolicies().length }} / {{ policies().length }})</h4>
+            @if (filteredPolicies().length > 0) {
+              <div class="results-table">
+                <div class="table-header">
+                  <div class="col-policy-num">Policy #</div>
+                  <div class="col-holder">Holder</div>
+                  <div class="col-type">Type</div>
+                  <div class="col-premium">Premium</div>
+                  <div class="col-status">Status</div>
+                </div>
+                @for (policy of filteredPolicies(); track policy.policyId) {
+                  <div class="table-row">
+                    <div class="col-policy-num">{{ policy.policyNumber }}</div>
+                    <div class="col-holder">{{ policy.user?.fullName || policy.policyHolder?.name || 'N/A' }}</div>
+                    <div class="col-type">{{ policy.policyType }}</div>
+                    <div class="col-premium">{{ formatCurrency(policy.premiumAmount || 0) }}</div>
+                    <div class="col-status">
+                      <span class="status-badge" [class]="'status-' + (policy.status || 'unknown').toLowerCase()">
+                        {{ policy.status || 'Unknown' }}
+                      </span>
+                    </div>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="no-results">
+                <p>No policies match the current filters</p>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Payments Filter Section -->
+      <div class="card payments-card">
+        <div class="card-header">
+          <h2>💳 Payments Search & Filter</h2>
+          <button class="clear-filters-btn" (click)="clearPaymentsFilters()" title="Clear all filters">✕ Clear</button>
+        </div>
+        <div class="card-body">
+          <!-- Filter Controls -->
+          <div class="filter-controls">
+            <div class="filter-group">
+              <label>Search (Payment ID, Method)</label>
+              <input 
+                type="text" 
+                [(ngModel)]="paymentsSearchText" 
+                placeholder="Search by payment ID or method..."
+                class="filter-input"
+              />
+            </div>
+
+            <div class="filter-group">
+              <label>Status</label>
+              <select [(ngModel)]="paymentsStatusFilter" class="filter-select">
+                <option value="">All Status</option>
+                <option value="success">Success</option>
+                <option value="pending">Pending</option>
+                <option value="failed">Failed</option>
+                <option value="refunded">Refunded</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label>Payment Method</label>
+              <select [(ngModel)]="paymentsMethodFilter" class="filter-select">
+                <option value="">All Methods</option>
+                @for (method of uniquePaymentMethods(); track method) {
+                  <option [value]="method">{{ method }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label>Min Amount (₹)</label>
+              <input 
+                type="number" 
+                [(ngModel)]="paymentsMinAmount" 
+                placeholder="Min amount"
+                class="filter-input"
+              />
+            </div>
+
+            <div class="filter-group">
+              <label>Max Amount (₹)</label>
+              <input 
+                type="number" 
+                [(ngModel)]="paymentsMaxAmount" 
+                placeholder="Max amount"
+                class="filter-input"
+              />
+            </div>
+          </div>
+
+          <!-- Filtered Results -->
+          <div class="filter-results">
+            <h4>Results ({{ filteredPayments().length }} / {{ payments().length }})</h4>
+            @if (filteredPayments().length > 0) {
+              <div class="results-table">
+                <div class="table-header">
+                  <div class="col-payment-id">Payment ID</div>
+                  <div class="col-method">Method</div>
+                  <div class="col-amount">Amount</div>
+                  <div class="col-date">Date</div>
+                  <div class="col-status">Status</div>
+                </div>
+                @for (payment of filteredPayments(); track payment.paymentId) {
+                  <div class="table-row">
+                    <div class="col-payment-id">{{ payment.paymentId }}</div>
+                    <div class="col-method">{{ payment.paymentMethod || 'N/A' }}</div>
+                    <div class="col-amount">{{ formatCurrency(payment.amount || 0) }}</div>
+                    <div class="col-date">{{ formatDate(payment.paymentDate) }}</div>
+                    <div class="col-status">
+                      <span class="status-badge" [class]="'status-' + (payment.status || 'unknown').toLowerCase()">
+                        {{ payment.status || 'Unknown' }}
+                      </span>
+                    </div>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="no-results">
+                <p>No payments match the current filters</p>
+              </div>
+            }
           </div>
         </div>
       </div>

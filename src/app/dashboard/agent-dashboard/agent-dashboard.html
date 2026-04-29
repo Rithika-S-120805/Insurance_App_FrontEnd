@@ -57,30 +57,33 @@
     <!-- Policy Selling Section -->
     <div class="card policy-selling-card">
       <div class="card-header">
-        <h2>📋 Policy Selling & Management</h2>
+        <h2>📋 Assigned Policies ({{ assignedPolicies() }})</h2>
       </div>
       <div class="card-body">
-        <div class="selling-features">
-          <div class="feature-item">
-            <h4>✅ Choose Policies</h4>
-            <p>Help customers select the right insurance plans for their needs</p>
+        @if (policyHighlights().length > 0) {
+          <div class="renewals-list">
+            @for (policy of policyHighlights(); track policy.policyId) {
+              <div class="renewal-item">
+                <div class="renewal-info">
+                  <h4>Policy #{{ policy.policyNumber || policy.policyId }}</h4>
+                  <p>Holder: {{ policy.user?.fullName || policy.policyHolder?.name || 'N/A' }}</p>
+                  <p>Type: {{ policy.policyType || policy.coverageType || 'N/A' }}</p>
+                  <p>Status: {{ policy.status || 'Unknown' }}</p>
+                </div>
+                <button class="btn btn-sm btn-primary">View Details</button>
+              </div>
+            }
           </div>
-          <div class="feature-item">
-            <h4>📝 Fill Application Forms</h4>
-            <p>Assist in completing policy application documents</p>
-          </div>
-          <div class="feature-item">
-            <h4>📤 Submit Requests</h4>
-            <p>Submit policy requests to the admin for approval</p>
-          </div>
-        </div>
+        } @else {
+          <p class="no-data">No assigned policies available</p>
+        }
       </div>
     </div>
 
     <!-- Customer Management Section -->
     <div class="card customers-management-card">
       <div class="card-header">
-        <h2>👨‍💼 Customer Management</h2>
+        <h2>👨‍💼 Assigned Customers</h2>
         <a href="/users" class="view-all">View All →</a>
       </div>
       <div class="card-body">
@@ -94,7 +97,8 @@
                 </div>
                 <div class="customer-details">
                   <span>Email: {{ customer.email }}</span>
-                  <span>Policies: {{ customer.policies }}</span>
+                  <span>Agent ID: {{ customer.agent_id || customer.agentId || currentAgentId() || 'N/A' }}</span>
+                  <span>Policies: {{ customer.policies ?? customer.policyCount ?? 0 }}</span>
                 </div>
               </div>
             }
@@ -112,9 +116,9 @@
         <a href="/policies" class="view-all">View All →</a>
       </div>
       <div class="card-body">
-        @if (policiesNeedingRenewal().length > 0) {
+        @if (renewalHighlights().length > 0) {
           <div class="renewals-list">
-            @for (policy of policiesNeedingRenewal(); track policy.policyId) {
+            @for (policy of renewalHighlights(); track policy.policyId) {
               <div class="renewal-item">
                 <div class="renewal-info">
                   <h4>Policy #{{ policy.policyNumber }}</h4>
@@ -134,13 +138,13 @@
     <!-- Claim Assistance Section -->
     <div class="card claims-assistance-card">
       <div class="card-header">
-        <h2>📄 Claim Assistance</h2>
+        <h2>📄 Assigned Claims ({{ totalClaims() }})</h2>
         <a href="/claims" class="view-all">View All →</a>
       </div>
       <div class="card-body">
-        @if (claimsNeedingAssistance().length > 0) {
+        @if (claimHighlights().length > 0) {
           <div class="claims-list">
-            @for (claim of claimsNeedingAssistance(); track claim.claimId) {
+            @for (claim of claimHighlights(); track claim.claimId) {
               <div class="claim-item">
                 <div class="claim-header">
                   <h4>Claim #{{ claim.claimNumber || claim.claimId }}</h4>
@@ -160,7 +164,36 @@
             }
           </div>
         } @else {
-          <p class="no-data">No claims needing assistance</p>
+          <p class="no-data">No assigned claims available</p>
+        }
+      </div>
+    </div>
+
+    <!-- Payments Section -->
+    <div class="card renewals-card">
+      <div class="card-header">
+        <h2>💳 Recent Payments</h2>
+        <a href="/payments" class="view-all">View All →</a>
+      </div>
+      <div class="card-body">
+        @if (paymentHighlights().length > 0) {
+          <div class="renewals-list">
+            @for (payment of paymentHighlights(); track payment.paymentId) {
+              <div class="renewal-item">
+                <div class="renewal-info">
+                  <h4>Payment #{{ payment.paymentId }}</h4>
+                  <p>Claim: {{ payment.claim?.claimNumber || payment.claimId || 'N/A' }}</p>
+                  <p>Method: {{ payment.paymentMethod || 'N/A' }}</p>
+                  <p>Amount: {{ payment.amount | currency:'INR' }}</p>
+                </div>
+                <span class="claim-status" [class]="'status-' + (payment.payment_status || payment.status || 'pending').toLowerCase()">
+                  {{ payment.payment_status || payment.status || 'Pending' | titlecase }}
+                </span>
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="no-data">No recent payments available</p>
         }
       </div>
     </div>

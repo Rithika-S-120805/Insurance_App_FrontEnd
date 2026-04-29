@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
-import { delay, catchError } from 'rxjs/operators';
+import { Observable, of, combineLatest } from 'rxjs';
+import { delay, catchError, map } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 
 @Injectable({
@@ -10,25 +10,83 @@ import { AuthService } from './auth.service';
 export class DashboardService {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
-  private apiUrl = 'http://localhost:8080/api/dashboard';
+  private apiUrl = 'http://localhost:8080/api';
 
-  // Mock mode for development
-  private mockMode = false; // Use real backend API
+  // Real backend API - no mock mode for production
 
   /**
-   * Get admin dashboard data
+   * Get admin dashboard data with user breakdown by role
    */
   getAdminDashboard(): Observable<any> {
-    if (this.mockMode) {
-      return this.mockAdminDashboard();
-    }
     const token = this.authService.getToken();
     let headers = new HttpHeaders();
     if (token) {
       headers = headers.set('Authorization', `Bearer ${token}`);
     }
-    console.log('[DASHBOARD] Manually adding Authorization header:', headers);
-    return this.http.get<any>(`${this.apiUrl}/admin`, { headers });
+    console.log('[DASHBOARD] Fetching admin dashboard from backend');
+    
+    // Fetch main dashboard data
+    const dashboardData$ = this.http.get<any>(`${this.apiUrl}/admin`, { headers });
+    
+    // Fetch user breakdown by role
+    const userStats$ = this.getUsersByRole(headers);
+    
+    // Combine both observables
+    return combineLatest([dashboardData$, userStats$]).pipe(
+      map(([dashboardData, stats]) => ({
+        ...dashboardData,
+        stats: stats
+      })),
+      catchError((error) => {
+        console.error('[DASHBOARD] Error fetching admin dashboard:', error);
+        return of({
+          totalUsers: 0,
+          totalPolicies: 0,
+          totalClaims: 0,
+          totalAmountPaid: 0,
+          stats: {
+            ADMIN: 0,
+            AGENT: 0,
+            CUSTOMER: 0
+          }
+        });
+      })
+    );
+  }
+
+  /**
+   * Get user counts by role from backend
+   */
+  private getUsersByRole(headers: HttpHeaders): Observable<{[key: string]: number}> {
+    const usersApiUrl = 'http://localhost:8080/api/users';
+    
+    return this.http.get<any[]>(usersApiUrl, { headers }).pipe(
+      map((users) => {
+        // Count users by role
+        const roleCount: {[key: string]: number} = {
+          ADMIN: 0,
+          AGENT: 0,
+          CUSTOMER: 0
+        };
+        
+        users.forEach((user) => {
+          if (user.role && roleCount.hasOwnProperty(user.role)) {
+            roleCount[user.role]++;
+          }
+        });
+        
+        console.log('[DASHBOARD] Users by role:', roleCount);
+        return roleCount;
+      }),
+      catchError((error) => {
+        console.error('[DASHBOARD] Error fetching users by role:', error);
+        return of({
+          ADMIN: 0,
+          AGENT: 0,
+          CUSTOMER: 0
+        });
+      })
+    );
   }
 
   /**
@@ -64,10 +122,12 @@ export class DashboardService {
    * Get agent dashboard data
    */
   getAgentDashboard(): Observable<any> {
-    if (this.mockMode) {
-      return this.mockAgentDashboard();
+    const token = this.authService.getToken();
+    let headers = new HttpHeaders();
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
     }
-    return this.http.get<any>(`${this.apiUrl}/agent`);
+    return this.http.get<any>(`${this.apiUrl}/agent`, { headers });
   }
 
   /**
@@ -95,10 +155,12 @@ export class DashboardService {
    * Get customer dashboard data
    */
   getCustomerDashboard(): Observable<any> {
-    if (this.mockMode) {
-      return this.mockCustomerDashboard();
+    const token = this.authService.getToken();
+    let headers = new HttpHeaders();
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
     }
-    return this.http.get<any>(`${this.apiUrl}/customer`);
+    return this.http.get<any>(`${this.apiUrl}/customer`, { headers });
   }
 
   /**
@@ -132,12 +194,11 @@ export class DashboardService {
     console.log('[Dashboard] Loading agent customers.', {
       agentId,
       tokenExists: !!token,
-      tokenPreview: token ? token.substring(0, 30) + '...' : 'NO TOKEN'
+      tokenPreview: token ? token.substring(0, 30) + '...' : 'NO TOKEN',
+      tokenLength: token ? token.length : 0,
+      storageAuthToken: localStorage.getItem('authToken') ? 'EXISTS' : 'NOT FOUND',
+      storageToken: localStorage.getItem('token') ? 'EXISTS' : 'NOT FOUND'
     });
-
-    if (this.mockMode) {
-      return this.mockAgentCustomers(agentId || undefined);
-    }
     
     if (!agentId) {
       console.error('[Dashboard] No agentId found, returning empty list');
@@ -145,15 +206,28 @@ export class DashboardService {
     }
 
     if (!token) {
-      console.error('[Dashboard] No token found, cannot make authenticated request');
+      console.error('[Dashboard] ❌ NO TOKEN FOUND - cannot make authenticated request');
+      console.log('[Dashboard] localStorage contents:', {
+        authToken: localStorage.getItem('authToken') ? 'EXISTS' : 'MISSING',
+        token: localStorage.getItem('token') ? 'EXISTS' : 'MISSING',
+        currentUser: localStorage.getItem('currentUser') ? 'EXISTS' : 'MISSING',
+        userRole: localStorage.getItem('userRole') ? 'EXISTS' : 'MISSING'
+      });
       return of([]);
     }
 
     const url = `${this.apiUrl}/agent/customers`;
     console.log('[Dashboard] Making request to:', url, 'with agentId:', agentId);
 
+    let headers = new HttpHeaders();
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+      console.log('[Dashboard] ✅ Authorization header set with token:', token.substring(0, 30) + '...');
+    }
+
     return this.http.get<any>(url, {
-      params: { agentId: agentId.toString() }
+      params: { agentId: agentId.toString() },
+      headers: headers
     }).pipe(
       catchError((error) => {
         console.error('[Dashboard] Error fetching agent customers:', {
@@ -194,20 +268,23 @@ export class DashboardService {
    */
   getAgentPolicies(): Observable<any> {
     const agentId = this.authService.getAgentId();
+    const token = this.authService.getToken();
 
     console.log('[Dashboard] Loading agent policies. AgentId:', agentId);
-
-    if (this.mockMode) {
-      return this.mockAgentPolicies(agentId || undefined);
-    }
     
     if (!agentId) {
       console.error('[Dashboard] No agentId found, returning empty list');
       return of([]);
     }
 
+    let headers = new HttpHeaders();
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+
     return this.http.get<any>(`${this.apiUrl}/agent/policies`, {
-      params: { agentId: agentId.toString() }
+      params: { agentId: agentId.toString() },
+      headers: headers
     }).pipe(
       catchError((error) => {
         console.error('[Dashboard] Error fetching agent policies:', {
@@ -248,20 +325,23 @@ export class DashboardService {
    */
   getAgentClaims(): Observable<any> {
     const agentId = this.authService.getAgentId();
+    const token = this.authService.getToken();
 
     console.log('[Dashboard] Loading agent claims. AgentId:', agentId);
-
-    if (this.mockMode) {
-      return this.mockAgentClaims(agentId || undefined);
-    }
     
     if (!agentId) {
       console.error('[Dashboard] No agentId found, returning empty list');
       return of([]);
     }
 
+    let headers = new HttpHeaders();
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+
     return this.http.get<any>(`${this.apiUrl}/agent/claims`, {
-      params: { agentId: agentId.toString() }
+      params: { agentId: agentId.toString() },
+      headers: headers
     }).pipe(
       catchError((error) => {
         console.error('[Dashboard] Error fetching agent claims:', {
@@ -301,10 +381,13 @@ export class DashboardService {
    * Get customer's policies
    */
   getCustomerPolicies(): Observable<any> {
-    if (this.mockMode) {
-      return this.mockCustomerPolicies();
+    const token = this.authService.getToken();
+    let headers = new HttpHeaders();
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
     }
-    return this.http.get<any>(`${this.apiUrl}/customer/policies`).pipe(
+    return this.http.get<any>(`${this.apiUrl}/dashboard/customer/policies`, { headers }).pipe(
+      map(response => response.policies || response),
       catchError(error => {
         console.error('[Dashboard] Error fetching customer policies:', error);
         return of([]);
@@ -325,10 +408,10 @@ export class DashboardService {
     const userId = currentUser.userId || currentUser.user_id;
     console.log('[Dashboard] Filtering customer policies for userId:', userId);
 
-    // Mock policies with user association
+    // Mock policies with user association - dynamically use current user ID
     const allPolicies = [
-      { policyId: 101, userId: 3, policyType: 'HEALTH', status: 'Active', premiumAmount: 5000 },
-      { policyId: 102, userId: 3, policyType: 'AUTO', status: 'Active', premiumAmount: 3000 },
+      { policyId: 101, userId: userId, policyType: 'HEALTH', status: 'Active', premiumAmount: 5000 },
+      { policyId: 102, userId: userId, policyType: 'AUTO', status: 'Active', premiumAmount: 3000 },
       { policyId: 103, userId: 4, policyType: 'LIFE', status: 'Active', premiumAmount: 10000 },
       { policyId: 104, userId: 5, policyType: 'HOME', status: 'Active', premiumAmount: 2500 }
     ];
@@ -343,10 +426,13 @@ export class DashboardService {
    * Get customer's claims
    */
   getCustomerClaims(): Observable<any> {
-    if (this.mockMode) {
-      return this.mockCustomerClaims();
+    const token = this.authService.getToken();
+    let headers = new HttpHeaders();
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
     }
-    return this.http.get<any>(`${this.apiUrl}/customer/claims`).pipe(
+    return this.http.get<any>(`${this.apiUrl}/dashboard/customer/claims`, { headers }).pipe(
+      map(response => response.claims || response),
       catchError(error => {
         console.error('[Dashboard] Error fetching customer claims:', error);
         return of([]);
@@ -367,10 +453,10 @@ export class DashboardService {
     const userId = currentUser.userId || currentUser.user_id;
     console.log('[Dashboard] Filtering customer claims for userId:', userId);
 
-    // Mock claims with user association
+    // Mock claims with user association - dynamically use current user ID
     const allClaims = [
-      { claimId: 1, userId: 3, claimStatus: 'Pending Review', claimAmount: 2000, policyId: 101 },
-      { claimId: 2, userId: 3, claimStatus: 'Approved', claimAmount: 1500, policyId: 102 },
+      { claimId: 1, userId: userId, claimStatus: 'Pending Review', claimAmount: 2000, policyId: 101 },
+      { claimId: 2, userId: userId, claimStatus: 'Approved', claimAmount: 1500, policyId: 102 },
       { claimId: 3, userId: 4, claimStatus: 'Under Review', claimAmount: 3000, policyId: 103 },
       { claimId: 4, userId: 5, claimStatus: 'Pending', claimAmount: 2500, policyId: 104 }
     ];
@@ -385,10 +471,13 @@ export class DashboardService {
    * Get customer's payments
    */
   getCustomerPayments(): Observable<any> {
-    if (this.mockMode) {
-      return this.mockCustomerPayments();
+    const token = this.authService.getToken();
+    let headers = new HttpHeaders();
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
     }
-    return this.http.get<any>(`${this.apiUrl}/customer/payments`).pipe(
+    return this.http.get<any>(`${this.apiUrl}/dashboard/customer/payments`, { headers }).pipe(
+      map(response => response.payments || response),
       catchError(error => {
         console.error('[Dashboard] Error fetching customer payments:', error);
         return of([]);
@@ -409,10 +498,10 @@ export class DashboardService {
     const userId = currentUser.userId || currentUser.user_id;
     console.log('[Dashboard] Filtering customer payments for userId:', userId);
 
-    // Mock payments with user association
+    // Mock payments with user association - dynamically use current user ID
     const allPayments = [
-      { paymentId: 1, userId: 3, amount: 5000, date: '2024-01-15', name: 'Health Insurance Premium', size: '2.1 MB', uploaded: '2 days ago' },
-      { paymentId: 2, userId: 3, amount: 3000, date: '2024-01-20', name: 'Auto Insurance Premium', size: '1.8 MB', uploaded: '1 week ago' },
+      { paymentId: 1, userId: userId, amount: 5000, date: '2024-01-15', name: 'Health Insurance Premium', size: '2.1 MB', uploaded: '2 days ago' },
+      { paymentId: 2, userId: userId, amount: 3000, date: '2024-01-20', name: 'Auto Insurance Premium', size: '1.8 MB', uploaded: '1 week ago' },
       { paymentId: 3, userId: 4, amount: 10000, date: '2024-01-10', name: 'Life Insurance Premium', size: '3.2 MB', uploaded: '3 days ago' },
       { paymentId: 4, userId: 5, amount: 2500, date: '2024-01-25', name: 'Home Insurance Premium', size: '1.5 MB', uploaded: '5 days ago' }
     ];

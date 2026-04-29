@@ -35,12 +35,23 @@ export class AuthInterceptor implements HttpInterceptor {
     request: HttpRequest<any>,
     next: HttpHandler
   ): Observable<HttpEvent<any>> {
-    // Get JWT token from auth service
-    const token = this.authService.getToken();
+    // Get JWT token from localStorage directly (most reliable method)
+    let token = localStorage.getItem('authToken');
+    
+    // Fallback to 'token' key if 'authToken' not found
+    if (!token) {
+      token = localStorage.getItem('token');
+    }
+
     const user = this.authService.getCurrentUser();
 
-    console.log(`[INTERCEPTOR] Intercepting request to: ${request.url}`);
-    console.log('[INTERCEPTOR] Token available:', !!token);
+    console.log(`[INTERCEPTOR] ========== REQUEST INTERCEPTED ==========`);
+    console.log(`[INTERCEPTOR] URL: ${request.url}`);
+    console.log('[INTERCEPTOR] Token in localStorage:', {
+      'authToken': localStorage.getItem('authToken') ? 'EXISTS' : 'NOT FOUND',
+      'token': localStorage.getItem('token') ? 'EXISTS' : 'NOT FOUND',
+      'finalToken': token ? `${token.substring(0, 30)}...` : 'NONE'
+    });
     console.log('[INTERCEPTOR] Current user:', user);
 
     // Decode and log JWT payload if token exists
@@ -54,41 +65,53 @@ export class AuthInterceptor implements HttpInterceptor {
     // If token exists and request is not for login/register, attach it
     if (token && !request.url.includes('/auth/login') && !request.url.includes('/auth/register')) {
       const authHeader = `Bearer ${token}`;
-      request = request.clone({
+      const modifiedRequest = request.clone({
         setHeaders: {
-          Authorization: authHeader
+          'Authorization': authHeader,
+          'Content-Type': 'application/json'
         }
       });
-      console.log(`[INTERCEPTOR] ✅ Added Authorization header for: ${request.url}`);
-      console.log('[INTERCEPTOR] Authorization:', authHeader.substring(0, 50) + '...');
-      console.log('[INTERCEPTOR] Request headers:', request.headers);
+      
+      console.log(`[INTERCEPTOR] ✅ HEADER ADDED`);
+      console.log('[INTERCEPTOR] Authorization header:', authHeader.substring(0, 50) + '...');
+      console.log('[INTERCEPTOR] All request headers:', Array.from(modifiedRequest.headers.keys()));
+      
+      // Verify header was actually set
+      const authFromRequest = modifiedRequest.headers.get('Authorization');
+      console.log('[INTERCEPTOR] Verification - Authorization header in request:', authFromRequest ? authFromRequest.substring(0, 50) + '...' : 'NOT FOUND');
+      console.log(`[INTERCEPTOR] ========== END REQUEST ==========\n`);
+      
+      return next.handle(modifiedRequest).pipe(
+        tap((event) => {
+          if (event.type === 4) { // HttpResponse
+            console.log(`[INTERCEPTOR] ✅ Response received for ${request.url}: Status ${event.status}`);
+          }
+        }),
+        catchError((error: HttpErrorResponse) => {
+          console.error(`[INTERCEPTOR] ❌ ERROR for ${request.url}: Status ${error.status}`);
+          const headersObj: { [key: string]: string } = {};
+          error.headers.keys().forEach(key => {
+            headersObj[key] = error.headers.get(key) || '';
+          });
+          console.error('[INTERCEPTOR] Error response headers:', headersObj);
+          return throwError(() => error);
+        })
+      );
     } else {
-      console.log(`[INTERCEPTOR] ⚠️ Skipped Authorization - Token: ${!!token}, URL: ${request.url}`);
+      console.log(`[INTERCEPTOR] ⚠️ SKIPPED - Token: ${!!token}, Is Auth Route: ${request.url.includes('/auth/login') || request.url.includes('/auth/register')}`);
+      console.log(`[INTERCEPTOR] ========== END REQUEST ==========\n`);
+      return next.handle(request).pipe(
+        tap((event) => {
+          if (event.type === 4) { // HttpResponse
+            console.log(`[INTERCEPTOR] ✅ Response received for ${request.url}: Status ${event.status}`);
+          }
+        }),
+        catchError((error: HttpErrorResponse) => {
+          console.error(`[INTERCEPTOR] ❌ ERROR for ${request.url}: Status ${error.status}`);
+          return throwError(() => error);
+        })
+      );
     }
-
-    // Pass request through and log errors
-    console.log(`[INTERCEPTOR] 🚀 Sending request to: ${request.url} with headers:`, request.headers.keys());
-    return next.handle(request).pipe(
-      tap((event) => {
-        // Success
-      }),
-      catchError((error: HttpErrorResponse) => {
-        // Convert HttpHeaders to plain object for logging
-        const headersObj: { [key: string]: string } = {};
-        error.headers.keys().forEach(key => {
-          headersObj[key] = error.headers.get(key) || '';
-        });
-
-        console.error(`[INTERCEPTOR] ❌ Error for ${request.url}:`, {
-          status: error.status,
-          statusText: error.statusText,
-          message: error.message,
-          headers: headersObj,
-          body: error.error
-        });
-        return throwError(() => error);
-      })
-    );
   }
 }
 

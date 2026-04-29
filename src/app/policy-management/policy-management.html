@@ -1,6 +1,8 @@
 <nav class="navbar">
   <button routerLink="/dashboard">Dashboard</button>
-  <button routerLink="/users">Users</button>
+  @if (!isCustomer()) {
+    <button routerLink="/users">Users</button>
+  }
   <button routerLink="/policies" class="active">Policies</button>
   <button routerLink="/claims">Claims</button>
   <button routerLink="/payments">Payments</button>
@@ -36,9 +38,6 @@
 
   <div class="policy-header">
     <h1>Policy Management</h1>
-    <button class="btn btn-primary" (click)="openAddForm()">
-      <span>+</span> Add New Policy
-    </button>
   </div>
 
   <!-- Filters -->
@@ -48,80 +47,89 @@
         #searchInput
         type="text"
         class="form-control"
-        placeholder="Search policies..."
-        [ngModel]="searchTerm()"
-        (input)="searchTerm.set(searchInput.value)"
+        placeholder="Search by policy number or holder..."
+        [ngModel]="policiesSearchText()"
+        (input)="policiesSearchText.set(searchInput.value)"
       />
     </div>
-    <div class="category-filter">
+    <div class="status-filter">
       <select
-        #categorySelect
+        #statusSelect
         class="form-control"
-        [ngModel]="selectedCategory()"
-        (change)="selectedCategory.set(categorySelect.value)"
+        [ngModel]="policiesStatusFilter()"
+        (change)="policiesStatusFilter.set(statusSelect.value)"
       >
-        <option value="all">All Types</option>
-        @for (cat of categories; track cat) {
-          <option [value]="cat">{{ cat }}</option>
+        <option value="">All Status</option>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+        <option value="expired">Expired</option>
+        <option value="pending">Pending</option>
+      </select>
+    </div>
+    <div class="type-filter">
+      <select
+        #typeSelect
+        class="form-control"
+        [ngModel]="policiesTypeFilter()"
+        (change)="policiesTypeFilter.set(typeSelect.value)"
+      >
+        <option value="">All Types</option>
+        @for (type of uniquePolicyTypes(); track type) {
+          <option [value]="type">{{ type }}</option>
         }
       </select>
     </div>
+    <div class="amount-filter">
+      <input
+        type="number"
+        class="form-control"
+        placeholder="Min Premium (₹)"
+        [ngModel]="policiesMinAmount()"
+        (change)="policiesMinAmount.set(parseNumber($event.target.value))"
+      />
+    </div>
+    <div class="amount-filter">
+      <input
+        type="number"
+        class="form-control"
+        placeholder="Max Premium (₹)"
+        [ngModel]="policiesMaxAmount()"
+        (change)="policiesMaxAmount.set(parseNumber($event.target.value))"
+      />
+    </div>
+    <button class="btn btn-secondary" (click)="clearPoliciesFilters()" title="Clear all filters">
+      ✕ Clear Filters
+    </button>
   </div>
 
   <!-- Policies Table -->
   <div class="table-container">
     @if (filteredPolicies().length > 0) {
-      <table class="policies-table">
-        <thead>
-          <tr>
-            <th>Number</th>
-            <th>Policy Type</th>
-            <th>Premium</th>
-            <th>Start Date</th>
-            <th>End Date</th>
-            <th>User ID</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
+      <div class="filter-results">
+        <h4>Results ({{ filteredPolicies().length }} / {{ policies().length }})</h4>
+        <div class="results-table">
+          <div class="table-header">
+            <div class="col-policy-num">Policy #</div>
+            <div class="col-holder">Holder</div>
+            <div class="col-type">Type</div>
+            <div class="col-premium">Premium</div>
+            <div class="col-status">Status</div>
+          </div>
           @for (policy of filteredPolicies(); track policy.policyId) {
-            <tr [class.inactive]="policy.status !== 'ACTIVE'">
-              <td class="policy-name">{{ policy.policyNumber }}</td>
-              <td>
-                <span class="badge" [ngClass]="'badge-' + ((policy.policyType?.toLowerCase() ?? '').replace(/ /g, '-') || 'default')">
-                  {{ policy.policyType }}
+            <div class="table-row">
+              <div class="col-policy-num" data-label="Policy #">{{ policy.policyNumber }}</div>
+              <div class="col-holder" data-label="Holder">{{ policy.user?.fullName || policy.policyHolder?.name || 'N/A' }}</div>
+              <div class="col-type" data-label="Type">{{ policy.policyType }}</div>
+              <div class="col-premium" data-label="Premium">{{ policy.premiumAmount | currency:'INR' }}</div>
+              <div class="col-status" data-label="Status">
+                <span class="status-badge" [class]="'status-' + (policy.status || 'unknown').toLowerCase()">
+                  {{ policy.status || 'Unknown' }}
                 </span>
-              </td>
-              <td>{{ policy.premiumAmount | currency:'INR' }}</td>
-              <td>{{ policy.startDate }}</td>
-              <td>{{ policy.endDate }}</td>
-              <td class="user-id">{{ policy.user_id || 'N/A' }}</td>
-              <td>
-                <button
-                  class="status-badge"
-                  [ngClass]="{
-                    'status-active': policy.status === 'ACTIVE',
-                    'status-pending': policy.status === 'PENDING',
-                    'status-inactive': policy.status === 'EXPIRED'
-                  }"
-                  (click)="toggleStatus(policy)"
-                >
-                  {{ policy.status | titlecase }}
-                </button>
-              </td>
-              <td class="actions">
-                <button class="btn btn-sm btn-info" (click)="openEditForm(policy)" title="Edit">
-                  ✎
-                </button>
-                <button class="btn btn-sm btn-danger" (click)="deletePolicy(policy.policyId)" title="Delete">
-                  ✕
-                </button>
-              </td>
-            </tr>
+              </div>
+            </div>
           }
-        </tbody>
-      </table>
+        </div>
+      </div>
     } @else {
       <div class="no-data">
         <p>No policies found matching your selection.</p>

@@ -416,3 +416,254 @@
   font-weight: 700;
   color: #333;
 }
+
+/* Filter Sections */
+.policies-card,
+.payments-card {
+  grid-column: 1 / -1;
+  margin-bottom: 2rem;
+}
+
+.policies-card .card-header,
+.payments-card .card-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-bottom: none;
+}
+
+.policies-card .card-header h2,
+.payments-card .card-header h2 {
+  color: white;
+  margin: 0;
+}
+
+.clear-filters-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: all 0.3s ease;
+}
+
+.clear-filters-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+/* Filter Controls */
+.filter-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-group label {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-input,
+.filter-select {
+  padding: 0.75rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  background: white;
+  color: #333;
+}
+
+.filter-input:focus,
+.filter-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.filter-input::placeholder {
+  color: #a0aec0;
+}
+
+/* Filter Results */
+.filter-results {
+  margin-top: 1.5rem;
+}
+
+.filter-results h4 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.results-table {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.table-header {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1fr 1fr 1fr;
+  gap: 1rem;
+  background: #f7fafc;
+  padding: 1rem;
+  font-weight: 600;
+  color: #666;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1fr 1fr 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  align-items: center;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.table-row:hover {
+  background: #f7fafc;
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.col-policy-num,
+.col-payment-id {
+  font-weight: 600;
+  color: #333;
+}
+
+.col-holder,
+.col-method {
+  color: #666;
+}
+
+.col-type,
+.col-premium,
+.col-amount,
+.col-date {
+  color: #666;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.status-active {
+  background: #c6f6d5;
+  color: #22543d;
+}
+
+.status-inactive {
+  background: #fed7d7;
+  color: #742a2a;
+}
+
+.status-pending {
+  background: #feebc8;
+  color: #7c2d12;
+}
+
+.status-expired {
+  background: #fed7d7;
+  color: #742a2a;
+}
+
+.status-success {
+  background: #c6f6d5;
+  color: #22543d;
+}
+
+.status-failed {
+  background: #fed7d7;
+  color: #742a2a;
+}
+
+.status-refunded {
+  background: #bee3f8;
+  color: #2c5282;
+}
+
+.status-unknown {
+  background: #e2e8f0;
+  color: #2d3748;
+}
+
+.no-results {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #999;
+  font-style: italic;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+/* Responsive Design for Filters */
+@media (max-width: 1024px) {
+  .table-header,
+  .table-row {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .col-premium,
+  .col-date {
+    display: none;
+  }
+
+  .filter-controls {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .table-header,
+  .table-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .col-type,
+  .col-method,
+  .col-premium,
+  .col-amount,
+  .col-date {
+    display: none;
+  }
+
+  .filter-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .action-btn {
+    grid-template-columns: 1fr 1fr;
+  }
+}

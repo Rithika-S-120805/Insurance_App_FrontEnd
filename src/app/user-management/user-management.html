@@ -10,7 +10,7 @@
   <!-- Success Message Toast -->
   @if (showSuccessMessage()) {
     <div class="success-message">
-      <span class="message-text">{{ successMessage }}</span>
+      <span class="message-text">{{ successMessage() }}</span>
       <button class="close-message" (click)="showSuccessMessage.set(false)">✕</button>
     </div>
   }
@@ -39,7 +39,7 @@
     <div class="modal-overlay" (click)="closeForm()">
       <div class="modal-content" (click)="$event.stopPropagation()">
         <div class="modal-header">
-          <h2>{{ isEditMode() ? 'Edit User' : 'Add New User' }}</h2>
+          <h2>{{ isEditMode() ? editFormTitle() : formTitle() }}</h2>
           <button type="button" class="close-btn" (click)="closeForm()">✕</button>
         </div>
         <div class="modal-body">
@@ -116,18 +116,27 @@
               </div>
             }
 
-            <div class="form-group">
-              <label for="role">Role *</label>
-              <select
-                id="role"
-                formControlName="role"
-                class="form-control"
-              >
-                @for (role of roles(); track role) {
-                  <option [value]="role">{{ role }}</option>
-                }
-              </select>
-            </div>
+            @if (isAgent()) {
+              <div class="form-group">
+                <label>Role</label>
+                <div class="form-control" style="background-color: #e9ecef; border: 1px solid #ced4da; border-radius: 0.25rem; padding: 0.375rem 0.75rem;">
+                  Customer
+                </div>
+              </div>
+            } @else {
+              <div class="form-group">
+                <label for="role">Role *</label>
+                <select
+                  id="role"
+                  formControlName="role"
+                  class="form-control"
+                >
+                  @for (role of roles(); track role) {
+                    <option [value]="role">{{ role }}</option>
+                  }
+                </select>
+              </div>
+            }
           </form>
         </div>
         <div class="modal-footer">
@@ -141,38 +150,40 @@
   }
 
   <div class="user-header">
-    <h1>User Management</h1>
+    <h1>{{ headerTitle() }}</h1>
     <button class="btn btn-primary" (click)="openAddForm()">
-      <span>+</span> Add New User
+      <span>+</span> {{ addButtonLabel() }}
     </button>
   </div>
 
-  <!-- Filters -->
-  <div class="filters">
-        <div class="search-box">
-      <input
-        #searchInput
-        type="text"
-        class="form-control"
-        placeholder="Search users by name, email, or username..."
-            [ngModel]="searchTerm()"
-        (input)="searchTerm.set(searchInput.value)"
-      />
+  <!-- Filters (only for Admins and Agents) -->
+  @if (showFilters()) {
+    <div class="filters">
+      <div class="search-box">
+        <input
+          #searchInput
+          type="text"
+          class="form-control"
+          placeholder="Search users by name, email, or username..."
+          [ngModel]="searchTerm()"
+          (input)="searchTerm.set(searchInput.value)"
+        />
+      </div>
+      <div class="role-filter">
+        <select
+          #roleSelect
+          class="form-control"
+          [ngModel]="selectedRole()"
+          (change)="selectedRole.set(roleSelect.value)"
+        >
+          <option value="all">All Roles</option>
+          @for (role of roles(); track role) {
+            <option [value]="role">{{ role }}</option>
+          }
+        </select>
+      </div>
     </div>
-    <div class="role-filter">
-      <select
-        #roleSelect
-        class="form-control"
-        [ngModel]="selectedRole()"
-        (change)="selectedRole.set(roleSelect.value)"
-      >
-        <option value="all">All Roles</option>
-        @for (role of roles(); track role) {
-          <option [value]="role">{{ role }}</option>
-        }
-      </select>
-    </div>
-  </div>
+  }
 
   <!-- Users Table -->
   <div class="table-container">
@@ -200,11 +211,13 @@
               </td>
               <td class="actions">
                 <button class="btn btn-sm btn-edit" (click)="openEditForm(user)" title="Edit user">
-                  ✎ Edit
+                  ✎ {{ isAgent() ? 'Edit Customer' : 'Edit' }}
                 </button>
-                <button class="btn btn-sm btn-delete" (click)="deleteUser(user)" title="Delete user">
-                  🗑 Delete
-                </button>
+                @if (canDeleteUsers()) {
+                  <button class="btn btn-sm btn-delete" (click)="deleteUser(user)" title="Delete user">
+                    🗑 Delete
+                  </button>
+                }
               </td>
             </tr>
           }
@@ -212,7 +225,7 @@
       </table>
     } @else {
       <div class="no-data">
-        <p>No users found. {{ searchTerm() ? 'Try adjusting your search.' : 'Click "Add New User" to create one.' }}</p>
+        <p>No users found. {{ searchTerm() ? 'Try adjusting your search.' : (isAgent() ? 'Click "Add Customer" to create one.' : 'Click "Add New User" to create one.') }}</p>
       </div>
     }
   </div>

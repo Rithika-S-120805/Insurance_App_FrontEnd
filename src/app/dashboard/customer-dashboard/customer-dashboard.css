@@ -31,6 +31,15 @@
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
 }
 
+.quick-stat.clickable {
+  cursor: pointer;
+}
+
+.quick-stat.clickable:hover {
+  background: #f0f4ff;
+  border: 2px solid #667eea;
+}
+
 .stat-icon {
   font-size: 2rem;
 }
@@ -99,98 +108,186 @@
   padding: 1.5rem;
 }
 
-/* Policies List */
-.policies-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
+/* Policies Card - Full Width */
+.policies-card {
+  margin-bottom: 2rem;
+}
+
+.policies-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
 }
 
 .policy-card {
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 1.25rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
   transition: all 0.3s ease;
+  background: #f8fafc;
 }
 
 .policy-card:hover {
   border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+  background: #f0f4ff;
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.15);
+  transform: translateY(-2px);
 }
 
 .policy-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 1rem;
+  gap: 1rem;
 }
 
 .policy-header h3 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   color: #333;
+  font-weight: 600;
 }
 
-.policy-details {
-  margin-bottom: 1rem;
+.policy-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e2e8f0;
 }
 
-.policy-details p {
-  margin: 0.5rem 0;
+.policy-info-row:last-child {
+  border-bottom: none;
+}
+
+.policy-label {
   color: #666;
+  font-weight: 500;
   font-size: 0.9rem;
+}
+
+.policy-value {
+  color: #333;
+  font-weight: 600;
+  font-size: 0.95rem;
 }
 
 .policy-actions {
   display: flex;
   gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
 }
 
-/* Claims List */
-.claims-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
+.policy-actions .btn {
+  flex: 1;
+  text-align: center;
+}
+
+/* Responsive Policies Grid */
+@media (max-width: 1024px) {
+  .policies-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .policies-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Claims Card - Full Width */
+.claims-card {
+  margin-bottom: 2rem;
+}
+
+.claims-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
 }
 
 .claim-card {
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 1.25rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
   transition: all 0.3s ease;
+  background: #f8fafc;
 }
 
 .claim-card:hover {
   border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+  background: #f0f4ff;
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.15);
+  transform: translateY(-2px);
 }
 
 .claim-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 1rem;
+  gap: 1rem;
 }
 
 .claim-header h3 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   color: #333;
+  font-weight: 600;
 }
 
-.claim-details {
-  margin-bottom: 1rem;
+.claim-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e2e8f0;
 }
 
-.claim-details p {
-  margin: 0.5rem 0;
+.claim-info-row:last-child {
+  border-bottom: none;
+}
+
+.claim-label {
   color: #666;
+  font-weight: 500;
   font-size: 0.9rem;
+}
+
+.claim-value {
+  color: #333;
+  font-weight: 600;
+  font-size: 0.95rem;
 }
 
 .claim-actions {
   display: flex;
   gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.claim-actions .btn {
+  flex: 1;
+  text-align: center;
+}
+
+/* Responsive Claims Grid */
+@media (max-width: 1024px) {
+  .claims-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .claims-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Badges */

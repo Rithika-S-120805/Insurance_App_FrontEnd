@@ -5,6 +5,9 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { PaymentsService, Payment } from './payments.service';
 import { ClaimsService, Claim } from '../claims-management/claims.service';
+import { UserService } from '../services/user.service';
+import { UserRole } from '../models/user.model';
+
 
 @Component({
   selector: 'app-payments',
@@ -15,8 +18,15 @@ import { ClaimsService, Claim } from '../claims-management/claims.service';
   imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule]
 })
 export class PaymentsComponent implements OnInit {
+
+    canAddPayments = computed(() => {
+    const role = this.currentUser()?.role;
+    return role !== UserRole.CUSTOMER;
+  });
+
   private paymentsService = inject(PaymentsService);
   private claimsService = inject(ClaimsService);
+  private userService = inject(UserService);
   private fb = inject(FormBuilder);
 
   payments = signal<Payment[]>([]);
@@ -26,6 +36,11 @@ export class PaymentsComponent implements OnInit {
   isEditMode = signal(false);
   searchTerm = signal('');
   selectedStatus = signal('all');
+  paymentsSearchText = signal<string>('');
+  paymentsStatusFilter = signal<string>('');
+  paymentsMethodFilter = signal<string>('');
+  paymentsMinAmount = signal<number | null>(null);
+  paymentsMaxAmount = signal<number | null>(null);
   successMessage = signal('');
   showSuccessMessage = signal(false);
   showDeleteConfirm = signal(false);
@@ -33,23 +48,51 @@ export class PaymentsComponent implements OnInit {
 
   paymentForm!: FormGroup;
 
+  currentUser = signal(this.userService.getCurrentUser());
+  canManagePayments = computed(() => this.currentUser()?.role !== UserRole.AGENT);
+  isCustomer = computed(() => this.currentUser()?.role === UserRole.CUSTOMER);
+
   statuses = ['Completed', 'Pending', 'Failed'];
   paymentMethods = ['Credit Card', 'Debit Card', 'Bank Transfer', 'Cash', 'Check'];
 
   filteredPayments = computed(() => {
-    const search = this.searchTerm().toLowerCase();
-    const status = this.selectedStatus();
+    let filtered = this.payments();
 
-    return this.payments().filter(payment => {
-      const matchesSearch =
-        (payment.paymentId?.toString().toLowerCase().includes(search) || false) ||
-        (payment.payment_reference?.toLowerCase().includes(search) || false) ||
-        (payment.transactionId?.toLowerCase().includes(search) || false) ||
-        (payment.claim?.claimNumber?.toLowerCase().includes(search) || false);
-      const matchesStatus = status === 'all' || 
-        (payment.payment_status || payment.status) === status;
-      return matchesSearch && matchesStatus;
-    });
+    // Search by payment ID or method
+    if (this.paymentsSearchText()) {
+      const searchLower = this.paymentsSearchText().toLowerCase();
+      filtered = filtered.filter((p: any) => {
+        const paymentId = (p.paymentId || '').toString().toLowerCase();
+        const method = (p.paymentMethod || '').toLowerCase();
+        return paymentId.includes(searchLower) || method.includes(searchLower);
+      });
+    }
+
+    // Filter by status
+    if (this.paymentsStatusFilter()) {
+      filtered = filtered.filter((p: any) => (p.status || p.payment_status || '').toLowerCase() === this.paymentsStatusFilter().toLowerCase());
+    }
+
+    // Filter by method
+    if (this.paymentsMethodFilter()) {
+      filtered = filtered.filter((p: any) => (p.paymentMethod || '').toLowerCase() === this.paymentsMethodFilter().toLowerCase());
+    }
+
+    // Filter by amount range
+    if (this.paymentsMinAmount() !== null) {
+      filtered = filtered.filter((p: any) => (p.amount || 0) >= this.paymentsMinAmount()!);
+    }
+    if (this.paymentsMaxAmount() !== null) {
+      filtered = filtered.filter((p: any) => (p.amount || 0) <= this.paymentsMaxAmount()!);
+    }
+
+    return filtered;
+  });
+
+  // Get unique payment methods for filter dropdown
+  uniquePaymentMethods = computed(() => {
+    const methods = new Set(this.payments().map((p: any) => p.paymentMethod).filter(Boolean));
+    return Array.from(methods).sort();
   });
 
   ngOnInit(): void {
@@ -62,6 +105,7 @@ export class PaymentsComponent implements OnInit {
   private initializeForm(): void {
     this.paymentForm = this.fb.group({
       claimId: ['', Validators.required],
+      paymentType: ['Premium', Validators.required],
       amount: ['', [Validators.required, Validators.min(0)]],
       paymentDate: [new Date().toISOString().split('T')[0], Validators.required],
       paymentMethod: ['', Validators.required],
@@ -111,6 +155,9 @@ export class PaymentsComponent implements OnInit {
   }
 
   openAddForm(): void {
+    if (!this.canManagePayments()) {
+      return;
+    }
     this.isEditMode.set(false);
     this.selectedPayment.set(null);
     this.paymentForm.reset({
@@ -126,6 +173,9 @@ export class PaymentsComponent implements OnInit {
   }
 
   openEditForm(payment: Payment): void {
+    if (!this.canManagePayments()) {
+      return;
+    }
     this.isEditMode.set(true);
     this.selectedPayment.set(payment);
     this.paymentForm.patchValue({
@@ -147,6 +197,9 @@ export class PaymentsComponent implements OnInit {
   }
 
   savePayment(): void {
+    if (!this.canManagePayments()) {
+      return;
+    }
     if (this.paymentForm.invalid) {
       this.showSuccessMessage.set(true);
       this.successMessage.set('Please fill in all required fields correctly.');
@@ -157,6 +210,7 @@ export class PaymentsComponent implements OnInit {
     const paymentData: Payment = {
       ...formValue,
       claimId: +formValue.claimId,
+      paymentType: formValue.paymentType,
       amount: +formValue.amount
     };
 
@@ -197,11 +251,17 @@ export class PaymentsComponent implements OnInit {
   }
 
   deletePayment(payment: Payment): void {
+    if (!this.canManagePayments()) {
+      return;
+    }
     this.paymentToDelete.set(payment);
     this.showDeleteConfirm.set(true);
   }
 
   confirmDelete(): void {
+    if (!this.canManagePayments()) {
+      return;
+    }
     const payment = this.paymentToDelete();
     if (payment?.paymentId) {
       this.paymentsService.delete(payment.paymentId.toString()).subscribe({
@@ -224,6 +284,26 @@ export class PaymentsComponent implements OnInit {
   cancelDelete(): void {
     this.showDeleteConfirm.set(false);
     this.paymentToDelete.set(null);
+  }
+
+  /**
+   * Clear all payments filters
+   */
+  clearPaymentsFilters(): void {
+    this.paymentsSearchText.set('');
+    this.paymentsStatusFilter.set('');
+    this.paymentsMethodFilter.set('');
+    this.paymentsMinAmount.set(null);
+    this.paymentsMaxAmount.set(null);
+  }
+
+  /**
+   * Parse number from string value
+   */
+  parseNumber(value: string | null): number | null {
+    if (!value) return null;
+    const num = Number(value);
+    return isNaN(num) ? null : num;
   }
 
   getClaimInfo(claimId: number): Claim | undefined {

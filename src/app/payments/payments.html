@@ -1,6 +1,8 @@
 <nav class="navbar">
   <button routerLink="/dashboard">Dashboard</button>
-  <button routerLink="/users">Users</button>
+  @if (!isCustomer()) {
+    <button routerLink="/users">Users</button>
+  }
   <button routerLink="/policies">Policies</button>
   <button routerLink="/claims">Claims</button>
   <button routerLink="/payments" class="active">Payments</button>
@@ -16,7 +18,7 @@
   }
 
   <!-- Delete Confirmation Dialog -->
-  @if (showDeleteConfirm()) {
+  @if (showDeleteConfirm() && canManagePayments()) {
     <div class="modal-overlay" (click)="cancelDelete()">
       <div class="modal-content delete-confirm" (click)="$event.stopPropagation()">
         <div class="modal-header">
@@ -35,7 +37,14 @@
   }
 
   <!-- Add/Edit Payment Form -->
-  @if (showForm()) {
+
+  @if (canAddPayments()) {
+    <button class="btn btn-primary" (click)="openAddForm()">
+      <span>+</span> Add Payment
+    </button>
+  }
+
+  @if (showForm() && canManagePayments()) {
     <div class="modal-overlay" (click)="closeForm()">
       <div class="modal-content" (click)="$event.stopPropagation()">
         <div class="modal-header">
@@ -52,6 +61,16 @@
                   @for (claim of claims(); track claim.claimId) {
                     <option [value]="claim.claimId">{{ claim.claimId }} - {{ claim.description }}</option>
                   }
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="paymentType">Payment Type</label>
+                <select id="paymentType" formControlName="paymentType" class="form-control" [class.invalid]="paymentForm.get('paymentType')?.invalid && paymentForm.get('paymentType')?.touched">
+                  <option value="">Select type</option>
+                  <option value="Premium">Premium</option>
+                  <option value="Claim Settlement">Claim Settlement</option>
+                  <option value="Refund">Refund</option>
+                  <option value="Fee">Fee</option>
                 </select>
               </div>
               <div class="form-group">
@@ -106,11 +125,13 @@
 
   <div class="payments-header">
     <h1>Payments Management</h1>
-    <div class="header-info">
-      <button class="btn btn-primary" (click)="openAddForm()">
-        <span>+</span> Add New Payment
-      </button>
-    </div>
+    @if (canManagePayments()) {
+      <div class="header-info">
+        <button class="btn btn-primary" (click)="openAddForm()">
+          <span>+</span> Add New Payment
+        </button>
+      </div>
+    }
   </div>
 
   <!-- Filters -->
@@ -120,45 +141,65 @@
         #searchInput
         type="text"
         class="form-control"
-        placeholder="Search payments..."
-        [ngModel]="searchTerm()"
-        (input)="searchTerm.set(searchInput.value)"
+        placeholder="Search by payment ID or method..."
+        [ngModel]="paymentsSearchText()"
+        (input)="paymentsSearchText.set(searchInput.value)"
       />
     </div>
     <div class="status-filter">
       <select
         #statusSelect
         class="form-control"
-        [ngModel]="selectedStatus()"
-        (change)="selectedStatus.set(statusSelect.value)"
+        [ngModel]="paymentsStatusFilter()"
+        (change)="paymentsStatusFilter.set(statusSelect.value)"
       >
-        <option value="all">All Statuses</option>
-        @for (status of statuses; track status) {
-          <option [value]="status">{{ status }}</option>
+        <option value="">All Status</option>
+        <option value="success">Success</option>
+        <option value="pending">Pending</option>
+        <option value="failed">Failed</option>
+        <option value="refunded">Refunded</option>
+        <option value="completed">Completed</option>
+      </select>
+    </div>
+    <div class="method-filter">
+      <select
+        #methodSelect
+        class="form-control"
+        [ngModel]="paymentsMethodFilter()"
+        (change)="paymentsMethodFilter.set(methodSelect.value)"
+      >
+        <option value="">All Methods</option>
+        @for (method of uniquePaymentMethods(); track method) {
+          <option [value]="method">{{ method }}</option>
         }
       </select>
     </div>
+      
+    <button class="btn btn-secondary" (click)="clearPaymentsFilters()" title="Clear all filters">
+      ✕ Clear Filters
+    </button>
   </div>
 
   <!-- Payments Table -->
   <div class="table-container">
     @if (filteredPayments().length > 0) {
-      <table class="payments-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Claim</th>
-            <th>Amount</th>
-            <th>Payment Date</th>
-            <th>Method</th>
-            <th>Payment Reference</th>
-            <th>Payment Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (payment of filteredPayments(); track payment.paymentId) {
+      <div class="filter-results">
+        <h4>Results ({{ filteredPayments().length }} / {{ payments().length }})</h4>
+        <table class="payments-table">
+          <thead>
             <tr>
+              <th>ID</th>
+              <th>Claim</th>
+              <th>Amount</th>
+              <th>Payment Date</th>
+              <th>Method</th>
+              <th>Payment Reference</th>
+              <th>Payment Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (payment of filteredPayments(); track payment.paymentId) {
+              <tr>
               <td class="payment-id">{{ payment.paymentId }}</td>
               <td>
                 <div class="claim-info">
@@ -179,21 +220,14 @@
                   {{ payment.payment_status || payment.status }}
                 </span>
               </td>
-              <td class="actions">
-                <button class="btn btn-sm btn-info" (click)="openEditForm(payment)" title="Edit">
-                  ✎
-                </button>
-                <button class="btn btn-sm btn-danger" (click)="deletePayment(payment)" title="Delete">
-                  ✕
-                </button>
-              </td>
             </tr>
           }
         </tbody>
       </table>
+      </div>
     } @else {
       <div class="no-payments">
-        <p>No payments found.</p>
+        <p>No payments found matching your selection.</p>
       </div>
     }
   </div>

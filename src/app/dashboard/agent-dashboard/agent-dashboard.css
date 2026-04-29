@@ -143,7 +143,7 @@
   padding: 1rem;
   background: #f8f9fa;
   border-radius: 8px;
-  border-left: 3px solid #667eea;
+  border: 1px solid #e2e8f0;
   transition: all 0.3s ease;
 }
 
@@ -432,7 +432,7 @@ tbody tr:hover {
   padding: 1.5rem;
   background: #f8f9fa;
   border-radius: 8px;
-  border-left: 3px solid #667eea;
+  border: 1px solid #e2e8f0;
   transition: all 0.3s ease;
 }
 
@@ -502,7 +502,7 @@ tbody tr:hover {
   align-items: center;
   padding: 1.25rem;
   background: #fffaf0;
-  border-left: 3px solid #ed8936;
+  border: 1px solid #f1e3c8;
   border-radius: 8px;
   transition: all 0.3s ease;
 }
@@ -542,7 +542,7 @@ tbody tr:hover {
 .claim-item {
   padding: 1.5rem;
   background: #f0fff4;
-  border-left: 3px solid #48bb78;
+  border: 1px solid #cde9d7;
   border-radius: 8px;
   transition: all 0.3s ease;
 }

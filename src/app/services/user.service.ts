@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
+import { Observable, of, map, tap } from 'rxjs';
 import { delay, catchError } from 'rxjs/operators';
 import { User, UserRole } from '../models/user.model';
 import { AuthService } from './auth.service';
@@ -17,6 +17,23 @@ export class UserService {
   private mockMode = false; // Use real backend API
 
   /**
+   * Normalize user data from backend response
+   */
+  private normalizeUser(raw: any): User {
+    return {
+      userId: raw.userId ?? raw.id ?? raw.user_id,
+      user_id: raw.user_id ?? raw.userId ?? raw.id,
+      username: raw.username ?? raw.user_name ?? 'N/A',
+      email: raw.email ?? 'N/A',
+      fullName: raw.fullName ?? raw.full_name ?? raw.name ?? 'N/A',
+      role: (raw.role ?? raw.user_role ?? 'CUSTOMER') as any,
+      agent_id: raw.agent_id ?? raw.agentId,
+      agentId: raw.agentId ?? raw.agent_id
+    };
+  }
+
+  
+  /**
    * Get all users (admin only)
    */
   getAll(): Observable<User[]> {
@@ -24,7 +41,31 @@ export class UserService {
       return this.mockGetAllUsers();
     }
     console.log('[UserService] Fetching all users');
-    return this.http.get<User[]>(`${this.apiUrl}/users`).pipe(
+    
+    // Get authorization token and add to headers
+    let token = localStorage.getItem('authToken');
+    if (!token) {
+      token = localStorage.getItem('token');
+    }
+    
+    const headers: {[key: string]: string} = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+      console.log('[UserService] ✅ Authorization header added:', token.substring(0, 30) + '...');
+    } else {
+      console.warn('[UserService] ⚠️ No token found in localStorage');
+    }
+    
+    return this.http.get<any[]>(`${this.apiUrl}/users`, { headers }).pipe(
+      tap(rawUsers => {
+        console.log('[UserService] Raw response from API:', rawUsers);
+      }),
+      map(rawUsers => {
+        const normalizedUsers = rawUsers.map(raw => this.normalizeUser(raw));
+        console.log('[UserService] Users fetched successfully:', normalizedUsers.length);
+        console.log('[UserService] Normalized users:', normalizedUsers);
+        return normalizedUsers;
+      }),
       catchError((error) => {
         console.error('[UserService] Error fetching users:', {
           status: error.status,

@@ -27,6 +27,11 @@ export class PolicyManagementComponent implements OnInit {
   isEditMode = signal(false);
   searchTerm = signal('');
   selectedCategory = signal('all');
+  policiesSearchText = signal<string>('');
+  policiesStatusFilter = signal<string>('');
+  policiesTypeFilter = signal<string>('');
+  policiesMinAmount = signal<number | null>(null);
+  policiesMaxAmount = signal<number | null>(null);
   successMessage = signal('');
   showSuccessMessage = signal(false);
   showDeleteConfirm = signal(false);
@@ -35,21 +40,48 @@ export class PolicyManagementComponent implements OnInit {
   policyForm!: FormGroup;
 
   currentUser = signal(this.userService.getCurrentUser());
+  isCustomer = computed(() => this.currentUser()?.role === UserRole.CUSTOMER);
 
   categories = ['HEALTH', 'AUTO', 'HOME', 'LIFE', 'TRAVEL', 'FULL'];
 
   filteredPolicies = computed(() => {
-    const search = this.searchTerm().toLowerCase();
-    const category = this.selectedCategory();
+    let filtered = this.policies();
+    
+    // Search by policy number or holder name
+    if (this.policiesSearchText()) {
+      const searchLower = this.policiesSearchText().toLowerCase();
+      filtered = filtered.filter((p: any) => {
+        const policyNumber = (p.policyNumber || '').toLowerCase();
+        const holderName = (p.user?.fullName || p.policyHolder?.name || '').toLowerCase();
+        return policyNumber.includes(searchLower) || holderName.includes(searchLower);
+      });
+    }
 
-    return this.policies().filter(policy => {
-      const matchesSearch = 
-        (policy.policyNumber?.toLowerCase().includes(search) || false) ||
-        (policy.policyType?.toLowerCase().includes(search) || false) ||
-        (policy.user?.fullName?.toLowerCase().includes(search) || false);
-      const matchesCategory = category === 'all' || policy.policyType === category;
-      return matchesSearch && matchesCategory;
-    });
+    // Filter by status
+    if (this.policiesStatusFilter()) {
+      filtered = filtered.filter((p: any) => (p.status || '').toLowerCase() === this.policiesStatusFilter().toLowerCase());
+    }
+
+    // Filter by type
+    if (this.policiesTypeFilter()) {
+      filtered = filtered.filter((p: any) => (p.policyType || '').toLowerCase() === this.policiesTypeFilter().toLowerCase());
+    }
+
+    // Filter by premium amount range
+    if (this.policiesMinAmount() !== null) {
+      filtered = filtered.filter((p: any) => (p.premiumAmount || 0) >= this.policiesMinAmount()!);
+    }
+    if (this.policiesMaxAmount() !== null) {
+      filtered = filtered.filter((p: any) => (p.premiumAmount || 0) <= this.policiesMaxAmount()!);
+    }
+
+    return filtered;
+  });
+
+  // Get unique policy types for filter dropdown
+  uniquePolicyTypes = computed(() => {
+    const types = new Set(this.policies().map((p: any) => p.policyType).filter(Boolean));
+    return Array.from(types).sort();
   });
 
   constructor() {
@@ -306,6 +338,26 @@ export class PolicyManagementComponent implements OnInit {
     this.policyService.update(policy.policyId!.toString(), updatedPolicy).subscribe(() => {
       this.loadPolicies();
     });
+  }
+
+  /**
+   * Clear all policies filters
+   */
+  clearPoliciesFilters(): void {
+    this.policiesSearchText.set('');
+    this.policiesStatusFilter.set('');
+    this.policiesTypeFilter.set('');
+    this.policiesMinAmount.set(null);
+    this.policiesMaxAmount.set(null);
+  }
+
+  /**
+   * Parse number from string value
+   */
+  parseNumber(value: string | null): number | null {
+    if (!value) return null;
+    const num = Number(value);
+    return isNaN(num) ? null : num;
   }
 
   get policyNumber() { return this.policyForm.get('policyNumber'); }

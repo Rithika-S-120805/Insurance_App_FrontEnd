@@ -4,6 +4,7 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angula
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { UserService } from '../services/user.service';
+import { AuthService } from '../services/auth.service';
 import { User, UserRole } from '../models/user.model';
 
 @Component({
@@ -16,6 +17,7 @@ import { User, UserRole } from '../models/user.model';
 })
 export class UserManagementComponent implements OnInit {
   private userService = inject(UserService);
+  private authService = inject(AuthService);
   private fb = inject(FormBuilder);
 
   users = signal<User[]>([]);
@@ -32,6 +34,12 @@ export class UserManagementComponent implements OnInit {
   userForm!: FormGroup;
 
   currentUser = signal(this.userService.getCurrentUser());
+  isAgent = computed(() => this.currentUser()?.role === UserRole.AGENT);
+  isAdmin = computed(() => this.currentUser()?.role === UserRole.ADMIN);
+  headerTitle = computed(() => this.isAgent() ? 'Customer Management' : 'User Management');
+  addButtonLabel = computed(() => this.isAgent() ? 'Add Customer' : 'Add New User');
+  formTitle = computed(() => this.isAgent() ? 'Add New Customer' : 'Add New User');
+  editFormTitle = computed(() => this.isAgent() ? 'Edit Customer' : 'Edit User');
 
   roles = computed(() => {
     const user = this.currentUser();
@@ -44,10 +52,19 @@ export class UserManagementComponent implements OnInit {
   });
 
   filteredUsers = computed(() => {
+    const currentUser = this.currentUser();
+    let filtered = this.users();
+
+    // If customer, only show themselves
+    if (currentUser?.role === UserRole.CUSTOMER) {
+      return filtered.filter(user => user.userId === currentUser.userId);
+    }
+
+    // For agents and admins, apply search and role filters
     const search = this.searchTerm().toLowerCase();
     const role = this.selectedRole();
 
-    return this.users().filter(user => {
+    return filtered.filter(user => {
       const matchesSearch = 
         (user.username?.toLowerCase().includes(search) || false) ||
         (user.email?.toLowerCase().includes(search) || false) ||
@@ -56,6 +73,9 @@ export class UserManagementComponent implements OnInit {
       return matchesSearch && matchesRole;
     });
   });
+
+  // Show filters only for admins and agents, not for customers
+  showFilters = computed(() => this.currentUser()?.role !== UserRole.CUSTOMER);
 
   constructor() {
     this.userForm = this.fb.group({
@@ -76,29 +96,35 @@ export class UserManagementComponent implements OnInit {
     if (!currentUser) return;
 
     this.userService.getAll().subscribe(users => {
-      let filteredUsers = users;
-
       if (currentUser.role === UserRole.AGENT) {
-        // Agents can only see customers assigned to them
-        filteredUsers = users.filter(user => 
-          user.role === UserRole.CUSTOMER && user.agent_id === currentUser.userId
-        );
+        // Backend already scopes /api/users to the logged-in agent's customers.
+        // Keep the response as-is so we don't filter out scoped results that don't carry agent_id.
+        this.users.set(users.filter(user => user.role === UserRole.CUSTOMER));
       } else if (currentUser.role === UserRole.CUSTOMER) {
         // Customers can only see themselves
-        filteredUsers = users.filter(user => user.userId === currentUser.userId);
+        this.users.set(users.filter(user => user.userId === currentUser.userId));
+      } else {
+        // Admins see all users
+        this.users.set(users);
       }
-      // Admins see all users
 
-      console.log('Loaded users:', filteredUsers);
-      this.users.set(filteredUsers);
+      console.log('Loaded users:', this.users());
     });
+  }
+
+  private matchesAgent(value: number | string | undefined, agentId: number | string | null | undefined): boolean {
+    if (value === undefined || value === null || agentId === undefined || agentId === null) {
+      return false;
+    }
+
+    return String(value) === String(agentId);
   }
 
   openAddForm(): void {
     this.isEditMode.set(false);
     this.selectedUser.set(null);
     // Reset form and clear all validators
-    this.userForm.reset({ role: 'CUSTOMER' });
+    this.userForm.reset({ role: UserRole.CUSTOMER });
     // Set password as required for new users
     this.userForm.get('password')?.setValidators([Validators.required, Validators.minLength(6)]);
     this.userForm.get('password')?.updateValueAndValidity();
@@ -122,7 +148,7 @@ export class UserManagementComponent implements OnInit {
       email: user.email,
       fullName: user.fullName,
       password: '',
-      role: user.role
+      role: this.isAgent() ? UserRole.CUSTOMER : user.role
     });
     // Clear touched state so validation errors don't show
     Object.keys(this.userForm.controls).forEach(key => {
@@ -157,7 +183,7 @@ export class UserManagementComponent implements OnInit {
         password: formValue.password ? formValue.password : undefined, // Only include password if it's provided
         email: formValue.email,
         fullName: formValue.fullName,
-        role: formValue.role
+        role: this.isAgent() ? UserRole.CUSTOMER : formValue.role
       };
       
       this.userService.update(userId, updatedUser).subscribe(
@@ -182,7 +208,7 @@ export class UserManagementComponent implements OnInit {
         email: formValue.email,
         fullName: formValue.fullName,
         password: password.trim(),
-        role: formValue.role,
+        role: this.isAgent() ? UserRole.CUSTOMER : formValue.role,
         ...(this.currentUser()?.role === UserRole.AGENT && { agent_id: this.currentUser()?.userId })
       };
       
@@ -217,11 +243,17 @@ export class UserManagementComponent implements OnInit {
   }
 
   deleteUser(user: User): void {
+    if (!this.isAdmin()) {
+      return;
+    }
     this.userToDelete.set(user);
     this.showDeleteConfirm.set(true);
   }
 
   confirmDelete(): void {
+    if (!this.isAdmin()) {
+      return;
+    }
     const user = this.userToDelete();
     const userId = user?.userId || user?.user_id;
     if (userId) {
@@ -244,6 +276,10 @@ export class UserManagementComponent implements OnInit {
   cancelDelete(): void {
     this.showDeleteConfirm.set(false);
     this.userToDelete.set(null);
+  }
+
+  canDeleteUsers(): boolean {
+    return this.isAdmin();
   }
 
   getRoleColor(role: UserRole): string {
