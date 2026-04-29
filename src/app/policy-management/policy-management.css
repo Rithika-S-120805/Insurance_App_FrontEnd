@@ -173,7 +173,7 @@
 .table-header,
 .table-row {
   display: grid;
-  grid-template-columns: 1.2fr 1.8fr 1fr 1fr 1fr;
+  grid-template-columns: 1.2fr 1.8fr 1fr 1fr 1fr minmax(160px, auto);
   align-items: center;
   gap: 0.75rem;
 }
@@ -228,6 +228,11 @@
 .col-premium,
 .col-status {
   font-weight: 600;
+}
+
+.col-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* Badge */
@@ -319,6 +324,12 @@
   display: flex;
   gap: 0.5rem;
   text-align: center;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
+
+.actions .btn {
+  white-space: nowrap;
 }
 
 .btn-sm {
@@ -591,6 +602,15 @@
     color: #64748b;
     text-transform: uppercase;
     letter-spacing: 0.04em;
+  }
+
+  .col-actions {
+    justify-content: flex-start;
+  }
+
+  .actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .policies-table {

@@ -294,6 +294,11 @@
   display: flex;
   gap: 0.5rem;
   text-align: center;
+  flex-wrap: nowrap;
+}
+
+.actions .btn {
+  white-space: nowrap;
 }
 
 .btn-sm {

@@ -10,7 +10,7 @@ import { AuthService } from './auth.service';
 export class DashboardService {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
-  private apiUrl = 'http://localhost:8080/api';
+  private apiUrl = 'http://localhost:8080/api/dashboard';
 
   // Real backend API - no mock mode for production
 
@@ -386,7 +386,7 @@ export class DashboardService {
     if (token) {
       headers = headers.set('Authorization', `Bearer ${token}`);
     }
-    return this.http.get<any>(`${this.apiUrl}/dashboard/customer/policies`, { headers }).pipe(
+    return this.http.get<any>(`${this.apiUrl}/customer/policies`, { headers }).pipe(
       map(response => response.policies || response),
       catchError(error => {
         console.error('[Dashboard] Error fetching customer policies:', error);
@@ -431,7 +431,7 @@ export class DashboardService {
     if (token) {
       headers = headers.set('Authorization', `Bearer ${token}`);
     }
-    return this.http.get<any>(`${this.apiUrl}/dashboard/customer/claims`, { headers }).pipe(
+    return this.http.get<any>(`${this.apiUrl}/customer/claims`, { headers }).pipe(
       map(response => response.claims || response),
       catchError(error => {
         console.error('[Dashboard] Error fetching customer claims:', error);
@@ -476,7 +476,7 @@ export class DashboardService {
     if (token) {
       headers = headers.set('Authorization', `Bearer ${token}`);
     }
-    return this.http.get<any>(`${this.apiUrl}/dashboard/customer/payments`, { headers }).pipe(
+    return this.http.get<any>(`${this.apiUrl}/customer/payments`, { headers }).pipe(
       map(response => response.payments || response),
       catchError(error => {
         console.error('[Dashboard] Error fetching customer payments:', error);

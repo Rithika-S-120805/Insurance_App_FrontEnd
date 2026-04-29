@@ -32,6 +32,17 @@ export class UserService {
     };
   }
 
+  private buildAuthHeaders(): { [key: string]: string } {
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+    const headers: { [key: string]: string } = {};
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return headers;
+  }
+
   
   /**
    * Get all users (admin only)
@@ -42,16 +53,9 @@ export class UserService {
     }
     console.log('[UserService] Fetching all users');
     
-    // Get authorization token and add to headers
-    let token = localStorage.getItem('authToken');
-    if (!token) {
-      token = localStorage.getItem('token');
-    }
-    
-    const headers: {[key: string]: string} = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-      console.log('[UserService] ✅ Authorization header added:', token.substring(0, 30) + '...');
+    const headers = this.buildAuthHeaders();
+    if (headers['Authorization']) {
+      console.log('[UserService] ✅ Authorization header added');
     } else {
       console.warn('[UserService] ⚠️ No token found in localStorage');
     }
@@ -134,7 +138,8 @@ export class UserService {
     if (this.mockMode) {
       return this.mockCreateUser(user);
     }
-    return this.http.post<User>(`${this.apiUrl}/users`, user);
+    const headers = this.buildAuthHeaders();
+    return this.http.post<User>(`${this.apiUrl}/users`, user, { headers });
   }
 
   /**
@@ -158,7 +163,8 @@ export class UserService {
     if (this.mockMode) {
       return this.mockGetUserById(id);
     }
-    return this.http.get<User>(`${this.apiUrl}/users/${id}`);
+    const headers = this.buildAuthHeaders();
+    return this.http.get<User>(`${this.apiUrl}/users/${id}`, { headers });
   }
 
   /**
@@ -201,7 +207,8 @@ export class UserService {
     if (this.mockMode) {
       return this.mockUpdateUser(id, user);
     }
-    return this.http.put<User>(`${this.apiUrl}/users/${id}`, user);
+    const headers = this.buildAuthHeaders();
+    return this.http.put<User>(`${this.apiUrl}/users/${id}`, user, { headers });
   }
 
   /**
@@ -225,7 +232,8 @@ export class UserService {
     if (this.mockMode) {
       return this.mockDeleteUser(id);
     }
-    return this.http.delete(`${this.apiUrl}/users/${id}`);
+    const headers = this.buildAuthHeaders();
+    return this.http.delete(`${this.apiUrl}/users/${id}`, { headers });
   }
 
   /**

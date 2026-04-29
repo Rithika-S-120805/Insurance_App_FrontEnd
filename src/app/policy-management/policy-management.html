@@ -38,6 +38,13 @@
 
   <div class="policy-header">
     <h1>Policy Management</h1>
+    @if (canManagePolicies()) {
+      <div class="header-info">
+        <button class="btn btn-primary" (click)="openAddForm()">
+          <span>+</span> Add New Policy
+        </button>
+      </div>
+    }
   </div>
 
   <!-- Filters -->
@@ -114,6 +121,9 @@
             <div class="col-type">Type</div>
             <div class="col-premium">Premium</div>
             <div class="col-status">Status</div>
+            @if (canManagePolicies()) {
+              <div class="col-actions">Actions</div>
+            }
           </div>
           @for (policy of filteredPolicies(); track policy.policyId) {
             <div class="table-row">
@@ -126,6 +136,14 @@
                   {{ policy.status || 'Unknown' }}
                 </span>
               </div>
+              @if (canManagePolicies()) {
+                <div class="col-actions" data-label="Actions">
+                  <div class="actions">
+                    <button class="btn btn-info" (click)="openEditForm(policy)">Edit</button>
+                    <button class="btn btn-danger" (click)="deletePolicy(policy.policyId)">Delete</button>
+                  </div>
+                </div>
+              }
             </div>
           }
         </div>
@@ -138,7 +156,7 @@
   </div>
 
   <!-- Add/Edit Form Modal -->
-  @if (showForm()) {
+  @if (showForm() && canManagePolicies()) {
     <div class="modal-overlay" (click)="closeForm()">
       <div class="modal-content" (click)="$event.stopPropagation()">
         <div class="modal-header">

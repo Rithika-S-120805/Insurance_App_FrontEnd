@@ -352,10 +352,10 @@ tbody tr:hover {
 }
 
 /* Metric Card Colors */
-.metric-primary { border-top: 3px solid #667eea; }
-.metric-success { border-top: 3px solid #48bb78; }
-.metric-warning { border-top: 3px solid #ed8936; }
-.metric-info { border-top: 3px solid #4299e1; }
+.metric-primary { border-top: none; }
+.metric-success { border-top: none; }
+.metric-warning { border-top: none; }
+.metric-info { border-top: none; }
 
 /* Loading Message */
 .loading-message {

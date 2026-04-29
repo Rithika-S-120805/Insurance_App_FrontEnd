@@ -41,6 +41,7 @@ export class PolicyManagementComponent implements OnInit {
 
   currentUser = signal(this.userService.getCurrentUser());
   isCustomer = computed(() => this.currentUser()?.role === UserRole.CUSTOMER);
+  canManagePolicies = computed(() => this.currentUser()?.role === UserRole.ADMIN);
 
   categories = ['HEALTH', 'AUTO', 'HOME', 'LIFE', 'TRAVEL', 'FULL'];
 
@@ -145,6 +146,8 @@ export class PolicyManagementComponent implements OnInit {
   }
 
   openAddForm(): void {
+    if (!this.canManagePolicies()) return;
+
     this.isEditMode.set(false);
     this.selectedPolicy.set(null);
     this.policyForm.reset({ status: 'ACTIVE' });
@@ -152,6 +155,8 @@ export class PolicyManagementComponent implements OnInit {
   }
 
   openEditForm(policy: Policy): void {
+    if (!this.canManagePolicies()) return;
+
     this.isEditMode.set(true);
     this.selectedPolicy.set(policy);
     this.policyForm.patchValue({
@@ -176,6 +181,8 @@ export class PolicyManagementComponent implements OnInit {
   }
 
   savePolicy(): void {
+    if (!this.canManagePolicies()) return;
+
     if (this.policyForm.invalid) {
       this.policyForm.markAllAsTouched();
       this.showMessage('Please fill all required fields');
@@ -198,6 +205,8 @@ export class PolicyManagementComponent implements OnInit {
       user_id: formValue.user_id
     });
     console.log('user_id value:', formValue.user_id, 'Type:', typeof formValue.user_id, 'IsNull:', formValue.user_id === null, 'IsUndefined:', formValue.user_id === undefined);
+
+      if (!this.canManagePolicies()) return;
 
     if (this.isEditMode() && this.selectedPolicy()?.policyId) {
       const updatedPolicy: Policy = {

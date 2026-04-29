@@ -1,2 +1,42 @@
 /* App styles */
 
+.app-navbar {
+	position: sticky;
+	top: 0;
+	z-index: 1000;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0.9rem 1.5rem;
+	background: rgba(255, 255, 255, 0.92);
+	backdrop-filter: blur(10px);
+	border-bottom: 1px solid #e2e8f0;
+	box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
+}
+
+.brand {
+	color: #1f2937;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	text-decoration: none;
+	text-transform: uppercase;
+}
+
+.logout-btn {
+	border: none;
+	border-radius: 999px;
+	padding: 0.6rem 1rem;
+	background: #111827;
+	color: #fff;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.logout-btn:hover {
+	background: #ef4444;
+}
+
+.app-shell {
+	min-height: calc(100vh - 64px);
+}
+
