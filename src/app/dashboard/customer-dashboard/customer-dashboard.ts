@@ -1,7 +1,7 @@
 import { Component, Input, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { User } from '../../models/user.model';
+import { User, UserRole } from '../../models/user.model';
 import { DashboardService } from '../../services/dashboard.service';
 
 @Component({
@@ -24,6 +24,10 @@ export class CustomerDashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadCustomerData();
+  }
+
+  isCustomer(): boolean {
+    return !!(this.user && (this.user.role === UserRole.CUSTOMER));
   }
 
   /**
@@ -61,7 +65,7 @@ export class CustomerDashboardComponent implements OnInit {
       if (dataType === 'claims' || dataType === 'payments') {
         // If item has a policyId, check if that policy belongs to this customer
         const itemPolicyId = item.policyId || item.policy_id;
-        if (itemPolicyId && this.policies()) {
+        if (itemPolicyId && this.policies() && this.policies().length > 0) {
           const belongsToPolicyId = this.policies().some(p => p.policyId === itemPolicyId);
           return belongsToPolicyId;
         }
@@ -135,29 +139,21 @@ export class CustomerDashboardComponent implements OnInit {
     );
 
     // Load payments
-    const userId = Number(localStorage.getItem('userId'));
+    this.dashboardService.getCustomerPayments().subscribe(
+      (payments) => {
+        const validatedPayments = this.validateCustomerData(payments, 'payments');
+        this.payments.set(validatedPayments);
 
-// Load payments
-this.dashboardService.getCustomerPayments().subscribe(
-  (payments) => {
-    const validatedPayments = this.validateCustomerData(payments, 'payments');
+        console.log('Validated customer payments:', validatedPayments);
 
-    const filteredPayments = validatedPayments.filter(
-      (payment: any) => Number(payment.userId) === userId
+        checkLoadingComplete();
+      },
+      (error) => {
+        console.error('Error loading payments:', error);
+        this.payments.set([]);
+        checkLoadingComplete();
+      }
     );
-
-    this.payments.set(filteredPayments);
-
-    console.log('Filtered customer payments:', filteredPayments);
-
-    checkLoadingComplete();
-  },
-  (error) => {
-    console.error('Error loading payments:', error);
-    this.payments.set([]);
-    checkLoadingComplete();
-  }
-);
 
   }
 

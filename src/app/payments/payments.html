@@ -38,7 +38,7 @@
 
     <!-- Add/Edit Payment Form -->
 
-    @if (showForm() && canManagePayments()) {
+    @if (showForm() && (isEditMode() ? canManagePayments() : canAddPayments())) {
       <div class="modal-overlay" (click)="closeForm()">
         <div class="modal-content" (click)="$event.stopPropagation()">
           <div class="modal-header">
@@ -125,7 +125,7 @@
 
     <div class="payments-header">
       <h1>Payments Management</h1>
-      @if (canManagePayments()) {
+      @if (canAddPayments()) {
         <div class="header-info">
           <button class="btn btn-primary" (click)="openAddForm()">
             <span>+</span> Add New Payment

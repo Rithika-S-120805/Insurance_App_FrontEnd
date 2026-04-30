@@ -28,7 +28,12 @@
     <div class="card policies-card">
       <div class="card-header">
         <h2>My Policies</h2>
-        <button class="view-all" (click)="viewAllPolicies()">View All →</button>
+        <div class="card-actions">
+          <button class="view-all" (click)="viewAllPolicies()">View All →</button>
+          @if (isCustomer()) {
+            <button class="btn btn-sm btn-primary" (click)="navigateToPayments()">Make a Payment</button>
+          }
+        </div>
       </div>
       <div class="card-body">
         <div class="policies-list">

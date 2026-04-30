@@ -50,11 +50,13 @@ export class PaymentsComponent implements OnInit {
 
   canAddPayments = computed(() => {
     const role = this.currentUser()?.role;
-    return role === UserRole.ADMIN;
+    // Allow admins and customers to add payments from the payments UI
+    return role === UserRole.ADMIN || role === UserRole.CUSTOMER;
   });
 
-canManagePayments = computed(() => {
+  canManagePayments = computed(() => {
     const role = this.currentUser()?.role;
+    // Only admins can manage (edit/delete) payments
     return role === UserRole.ADMIN;
   });
 
@@ -187,7 +189,7 @@ canManagePayments = computed(() => {
 
   openAddForm(): void {
 
-    if (!this.canManagePayments()) return;
+    if (!this.canAddPayments()) return;
 
     this.isEditMode.set(false);
     this.selectedPayment.set(null);
@@ -236,7 +238,7 @@ canManagePayments = computed(() => {
 
   savePayment(): void {
 
-    if (!this.canManagePayments()) return;
+    if (!(this.isEditMode() ? this.canManagePayments() : this.canAddPayments())) return;
 
     if (this.paymentForm.invalid) {
 
